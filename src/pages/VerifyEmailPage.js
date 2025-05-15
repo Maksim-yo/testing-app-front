@@ -1,0 +1,225 @@
+import {
+  Box,
+  Button,
+  Container,
+  Paper,
+  Typography,
+  CircularProgress,
+  Snackbar,
+  Alert,
+  Link,
+} from "@mui/material";
+import { useForm, Controller } from "react-hook-form";
+import { useSignUp, useClerk } from "@clerk/clerk-react"; // Добавим useClerk для доступа к clerk API
+import { useState } from "react";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
+import VerificationInput from "react-verification-input";
+import { ConstructionOutlined } from "@mui/icons-material";
+import { useCreateUserMutation } from "../app/api";
+import { useLocation } from "react-router-dom";
+const VerifyEmailPage = () => {
+  const { signUp, isLoaded } = useSignUp();
+  const {
+    control,
+    handleSubmit,
+    setError,
+    formState: { errors },
+  } = useForm();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+  const [codeExpired, setCodeExpired] = useState(false); // Для отслеживания ошибки истечения времени
+  const { clerk } = useClerk(); // Используем clerk API для отправки кода
+  const [cooldown, setCooldown] = useState(0);
+  const [createUser] = useCreateUserMutation();
+  const { state } = useLocation();
+  const { setActive } = useClerk(); // Добавляем useClerk
+
+  const { pendingUser } = state || {};
+
+  const onSubmit = async ({ code }) => {
+    if (!isLoaded) return;
+    setLoading(true);
+    try {
+      const result = await signUp.attemptEmailAddressVerification({ code });
+      if (pendingUser) {
+        await createUser({
+          id: result.createdUserId,
+          email: pendingUser.email,
+          is_admin: pendingUser.isAdmin,
+        });
+      }
+      await setActive({ session: result.createdSessionId });
+
+      setSnackbar({
+        open: true,
+        message: "Почта успешно подтверждена!",
+        severity: "success",
+      });
+      setTimeout(() => navigate("/"), 1500);
+    } catch (err) {
+      console.log("Full error:", err); // Для отладки
+
+      // 1. Сначала проверяем текст ошибки в err.message
+      if (err.message?.includes("Too many failed attempts")) {
+        setSnackbar({
+          open: true,
+          message: "Слишком много попыток. Запросите новый код.",
+          severity: "error",
+        });
+        setCodeExpired(true);
+        return; // Выходим, чтобы не проверять другие условия
+      } else if (err.message.includes("Incorrect code")) {
+        setSnackbar({
+          open: true,
+          severity: "error",
+          message: "Неверный код. Попробуйте ещё раз.",
+        });
+        return;
+      }
+      // 2. Затем проверяем стандартные ошибки Clerk
+      const clerkError = err.errors?.[0];
+      if (clerkError?.code === "verification_expired") {
+        setCodeExpired(true);
+        setSnackbar({
+          open: true,
+          message: "Код истёк. Пожалуйста, запросите новый.",
+          severity: "error",
+        });
+      } else if (clerkError?.code === "form_code_incorrect") {
+      } else {
+        setSnackbar({
+          open: true,
+          message:
+            clerkError?.longMessage || "Неверный код. Попробуйте ещё раз",
+          severity: "error",
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resendCode = async () => {
+    setCooldown(60);
+    const timer = setInterval(() => {
+      setCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+
+    setLoading(true);
+    try {
+      await signUp.prepareEmailAddressVerification({
+        strategy: "email_code",
+      });
+      setSnackbar({
+        open: true,
+        message: "Новый код отправлен на вашу почту.",
+        severity: "success",
+      });
+      setCodeExpired(false);
+    } catch (err) {
+      setSnackbar({
+        open: true,
+        message: err.errors?.[0]?.message || "Ошибка при отправке кода",
+        severity: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Container
+      maxWidth="sm"
+      sx={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "100vh",
+        flexDirection: "column",
+      }}
+    >
+      <Paper elevation={3} sx={{ p: 4, borderRadius: 3 }}>
+        <Typography variant="h5" gutterBottom align="center">
+          Подтверждение почты
+        </Typography>
+        <Typography variant="body2" gutterBottom align="center">
+          Введите код, который был отправлен на вашу почту.
+        </Typography>
+
+        <form onSubmit={handleSubmit(onSubmit)} noValidate>
+          <Box display="flex" justifyContent="center" mb={2}>
+            <Controller
+              name="code"
+              control={control}
+              rules={{ required: "Код обязателен" }}
+              render={({ field }) => (
+                <VerificationInput
+                  {...field}
+                  inputProps={{
+                    inputMode: "numeric",
+                    pattern: "[0-9]*",
+                  }}
+                  validChars="0-9"
+                  length={6} // Длина кода
+                  onChange={(code) => field.onChange(code)} // Обновление значения
+                  autoFocus
+                  placeholder="-" // Placeholder для пустых полей
+                />
+              )}
+            />
+          </Box>
+
+          {errors.code && (
+            <Typography color="error" variant="body2" mb={2} align="center">
+              {errors.code.message}
+            </Typography>
+          )}
+
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            sx={{ mt: 2 }}
+            disabled={loading}
+          >
+            {loading ? <CircularProgress size={24} /> : "Подтвердить"}
+          </Button>
+
+          <Box mt={2} textAlign="center">
+            <Button
+              variant="outlined"
+              onClick={resendCode}
+              disabled={loading || cooldown > 0}
+            >
+              {cooldown > 0
+                ? `Новый код через ${cooldown} сек`
+                : "Отправить новый код"}
+            </Button>
+            <Typography sx={{ mt: 1 }}>
+              Или попробуйте{" "}
+              <Link component={RouterLink} to="/sign-up">
+                зарегистрироваться заново
+              </Link>{" "}
+            </Typography>
+          </Box>
+        </form>
+      </Paper>
+
+      <Snackbar
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
+      </Snackbar>
+    </Container>
+  );
+};
+
+export default VerifyEmailPage;
