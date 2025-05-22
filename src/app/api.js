@@ -5,9 +5,8 @@ const baseQueryWithClerk = async (args, api, extraOptions) => {
   const token = await window.Clerk?.session?.getToken({
     template: "test_app", // Если не используешь шаблон — убери эту строку
   });
-
   const rawBaseQuery = fetchBaseQuery({
-    baseUrl: "http://localhost:8000/",
+    baseUrl: process.env.REACT_APP_API_URL,
     credentials: "include",
     prepareHeaders: (headers) => {
       if (token) {
