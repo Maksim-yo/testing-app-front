@@ -1,7 +1,5 @@
 export const validateTest = (test, settings) => {
   const errors = [];
-  console.log(test);
-  console.log(settings);
   if (!test.title || test.title.trim() === "") {
     errors.push("Укажите название теста.");
   }
@@ -41,8 +39,17 @@ export const validateTest = (test, settings) => {
       }
     }
   }
-
+  if (settings.has_time_limit) {
+    if (!test.time_limit_minutes)
+      errors.push("Не заданное время выполнения теста.");
+    else if (test.time_limit_minutes <= 0)
+      errors.push("Время выполнения теста должно быть больше нуля.");
+  }
   test.questions.forEach((q, index) => {
+    console.log(q.answers.length);
+    console.log(q);
+    const isBelbin = !!q.isBelbin;
+
     if (!q.text || q.text.trim() === "") {
       errors.push(`Вопрос №${index + 1} не имеет названия.`);
     }
@@ -50,21 +57,28 @@ export const validateTest = (test, settings) => {
     if (!q.answers || q.answers.length === 0) {
       errors.push(`У вопроса №${index + 1} нет вариантов ответа.`);
     }
-    if (!q.isBelbin && q.answers.length < settings.min_options) {
+
+    if (
+      !isBelbin &&
+      q.answers.length < settings.min_questions &&
+      q.question_type !== "text_answer"
+    ) {
+      console.log(settings.min_questions);
+
       errors.push(
         `У вопроса №${index + 1} должно быть от ${
-          settings.min_options
+          settings.min_questions
         } вариантов ответа.`
       );
     }
-    if (q.isBelbin && q.answers.length != settings.belbin_questions_in_block) {
+    if (isBelbin && q.answers.length != settings.belbin_questions_in_block) {
       errors.push(
         `У Белбин-вопроса №${index + 1} должно быть  ${
           settings.belbin_questions_in_block
         } вариантов ответа.`
       );
     }
-    if (q.isBelbin) {
+    if (isBelbin) {
       for (let i = 0; i < q.answers.length; i++) {
         if (!q.answers[i].role.name || q.answers[i].role.name.trim() === "") {
           errors.push(

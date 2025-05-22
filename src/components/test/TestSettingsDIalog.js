@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   Box,
   TextField,
@@ -8,7 +8,10 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
+
 export const TestSettingsDilog = ({
   initialTest,
   settingsOpen,
@@ -17,10 +20,12 @@ export const TestSettingsDilog = ({
   testSettings,
 }) => {
   const [minOptions, setMinOptions] = useState(testSettings.min_questions);
-  //   const [maxOptions, setMaxOptions] = useState(testSettings.maxOptions);
   const [belbinBlocks, setBelbinBlocks] = useState(testSettings.belbin_block);
   const [belbinOptionsPerBlock, setBelbinOptionsPerBlock] = useState(
     testSettings.belbin_questions_in_block
+  );
+  const [hasTimeLimit, setHasTimeLimit] = useState(
+    testSettings.has_time_limit || false
   );
 
   const handleSave = () => {
@@ -28,7 +33,8 @@ export const TestSettingsDilog = ({
       min_questions: minOptions,
       belbin_block: belbinBlocks,
       belbin_questions_in_block: belbinOptionsPerBlock,
-    }); // 👈 передаем все настройки родителю
+      has_time_limit: hasTimeLimit,
+    });
     setSettingsOpen(false);
   };
 
@@ -45,29 +51,25 @@ export const TestSettingsDilog = ({
           Обычный тест
         </Typography>
         <TextField
-          label="Минимальное количество варинатов ответа"
+          label="Минимальное количество вариантов ответа"
           type="number"
           fullWidth
           value={minOptions}
-          onChange={(e) => {
-            const val = Math.max(0, Number(e.target.value));
-            setMinOptions(val);
-          }}
+          onChange={(e) => setMinOptions(Math.max(0, Number(e.target.value)))}
           inputProps={{ min: 0 }}
           sx={{ mt: 1 }}
         />
-        {/* <TextField
-          label="Максимальное количество вариантов ответа"
-          type="number"
-          fullWidth
-          value={maxOptions}
-          onChange={(e) => {
-            const val = Math.max(0, Number(e.target.value));
-            setMaxOptions(val);
-          }}
-          inputProps={{ min: 0 }}
+
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={hasTimeLimit}
+              onChange={(e) => setHasTimeLimit(e.target.checked)}
+            />
+          }
+          label="Ограничить по времени"
           sx={{ mt: 2 }}
-        /> */}
+        />
 
         {/* Тест Белбина */}
         <Typography variant="subtitle1" gutterBottom sx={{ mt: 4 }}>
@@ -78,11 +80,7 @@ export const TestSettingsDilog = ({
           type="number"
           fullWidth
           value={belbinBlocks}
-          onChange={(e) => {
-            const val = Math.max(0, Number(e.target.value));
-            // onSave({ ...initialTest, belbinBlocks: val });
-            setBelbinBlocks(val);
-          }}
+          onChange={(e) => setBelbinBlocks(Math.max(0, Number(e.target.value)))}
           inputProps={{ min: 0 }}
           sx={{ mt: 1 }}
         />
@@ -91,11 +89,9 @@ export const TestSettingsDilog = ({
           type="number"
           fullWidth
           value={belbinOptionsPerBlock}
-          onChange={(e) => {
-            const val = Math.max(0, Number(e.target.value));
-            setBelbinOptionsPerBlock(val);
-            // onSave({ ...initialTest, belbinQuestionsPerBlock: val });
-          }}
+          onChange={(e) =>
+            setBelbinOptionsPerBlock(Math.max(0, Number(e.target.value)))
+          }
           inputProps={{ min: 0 }}
           sx={{ mt: 2 }}
         />

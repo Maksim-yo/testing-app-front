@@ -44,6 +44,7 @@ const PositionForm = ({ open, onClose, initialData, handleCloseForm }) => {
     { value: "high", label: "Высокий" },
     { value: "admin", label: "Администратор" },
   ];
+  const isFormValid = position.title.trim() !== "";
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -84,7 +85,9 @@ const PositionForm = ({ open, onClose, initialData, handleCloseForm }) => {
   };
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Новая должность</DialogTitle>
+      <DialogTitle>
+        {initialData ? "Редактировать должность" : "Новая должность"}
+      </DialogTitle>
       <DialogContent>
         <Box component="form" sx={{ mt: 2 }}>
           <TextField
@@ -95,8 +98,9 @@ const PositionForm = ({ open, onClose, initialData, handleCloseForm }) => {
             onChange={handleChange}
             margin="normal"
             required
+            // error={!isFormValid}
+            // helperText={!isFormValid ? "Обязательное поле" : ""}
           />
-
           <TextField
             fullWidth
             label="Описание"
@@ -107,44 +111,6 @@ const PositionForm = ({ open, onClose, initialData, handleCloseForm }) => {
             multiline
             rows={4}
           />
-
-          <TextField
-            select
-            fullWidth
-            label="Уровень доступа"
-            name="accessLevel"
-            value={position.accessLevel}
-            onChange={handleChange}
-            margin="normal"
-          >
-            {accessLevels.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
-            ))}
-          </TextField>
-
-          <TextField
-            fullWidth
-            label="Оклад"
-            name="salary"
-            value={position.salary}
-            onChange={handleChange}
-            margin="normal"
-            type="number"
-            InputProps={{ endAdornment: "₽" }}
-          />
-
-          <FormControlLabel
-            control={
-              <Checkbox
-                name="hasSystemAccess"
-                checked={position.hasSystemAccess}
-                onChange={handleChange}
-              />
-            }
-            label="Доступ к системе"
-          />
         </Box>
       </DialogContent>
       <DialogActions>
@@ -153,7 +119,7 @@ const PositionForm = ({ open, onClose, initialData, handleCloseForm }) => {
           onClick={handleSubmit}
           variant="contained"
           color="primary"
-          disabled={isLoading}
+          disabled={isLoading || !isFormValid}
           startIcon={
             isLoading ? <CircularProgress size={20} color="inherit" /> : null
           }

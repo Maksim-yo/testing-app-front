@@ -8,17 +8,22 @@ import { store } from "./app/store"; // путь до store
 import { ClerkProvider, useAuth, useUser } from "@clerk/clerk-react";
 import { useNavigate, useEffect } from "react";
 
+// const PUBLISHABLE_KEY = process.env.REACT_APP_CLERK_PUBLISHABLE_KEY;
 const PUBLISHABLE_KEY =
   "pk_test_cHJvYmFibGUtZWdyZXQtMzQuY2xlcmsuYWNjb3VudHMuZGV2JA";
-
 if (!PUBLISHABLE_KEY) {
   throw new Error("Missing Publishable Key");
 }
-
+// const FRONTED_API = process.env.REACT_CLERK_FRONTED_API_URL;
+const FRONTED_API = "https://probable-egret-34.clerk.accounts.dev";
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
-    <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
+    <ClerkProvider
+      frontendApi={FRONTED_API}
+      publishableKey={PUBLISHABLE_KEY}
+      afterSignOutUrl="/"
+    >
       <Provider store={store}>
         <BrowserRouter>
           <App />

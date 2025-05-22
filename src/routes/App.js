@@ -23,11 +23,17 @@ import SignUpPage from "../pages/SignupPage";
 import VerifyEmailPage from "../pages/VerifyEmailPage";
 import ProfilePage from "../pages/ProfilePage";
 import TestsPage from "../pages/TestPage";
+import CompleteSignUpPage from "../pages/CompleteProfile";
+import BelbinTest from "../pages/BelbinTest";
+import TestCompletedPage from "../pages/employee/TestCompletedPage";
+import VerifyAgainPage from "./VerifyAgainPage";
+import ResetPasswordPage from "../pages/ResetPasswordPage";
+import ResetPasswordVerification from "../pages/ResetPasswordVerification";
+import UserResultsPage from "../components/test/UserResultsPage";
 export default function App() {
   return (
     <Routes>
       {/* Редирект со старого URL на новый */}
-
       {/* <Route
         path="/quiz"
         element={
@@ -36,18 +42,17 @@ export default function App() {
           </SignedIn>
         }
       /> */}
-
       {/* Условный редирект */}
       <Route
         path="/admin"
         element={
-          <SignedIn>
-            <RoleProtectedRoute role="admin">
+          <RoleProtectedRoute role="admin">
+            <SignedIn>
               <AppLayout>
                 <AdminPage />
               </AppLayout>
-            </RoleProtectedRoute>
-          </SignedIn>
+            </SignedIn>
+          </RoleProtectedRoute>
         }
       />
       <Route
@@ -58,7 +63,7 @@ export default function App() {
               <SignInPage />
             </SignedOut>
             <SignedIn>
-              <Navigate to="/admin" />
+              <Navigate to="/tests" />
             </SignedIn>
           </>
         }
@@ -71,7 +76,7 @@ export default function App() {
               <SignUpPage />
             </SignedOut>
             <SignedIn>
-              <Navigate to="/admin" />
+              <Navigate to="/tests" />
             </SignedIn>
           </>
         }
@@ -79,11 +84,16 @@ export default function App() {
       <Route
         path="/me"
         element={
-          <SignedIn>
-            <AppLayout>
-              <ProfilePage />
-            </AppLayout>
-          </SignedIn>
+          <>
+            <SignedIn>
+              <AppLayout>
+                <ProfilePage />
+              </AppLayout>
+            </SignedIn>
+            <SignedOut>
+              <Navigate to="/sign-in" />
+            </SignedOut>
+          </>
         }
       />
       <Route
@@ -91,7 +101,7 @@ export default function App() {
         element={
           <>
             <SignedIn>
-              <Navigate to="/admin" />
+              <Navigate to="/tests" />
             </SignedIn>
             <SignedOut>
               <Navigate to="/sign-in" />
@@ -147,25 +157,64 @@ export default function App() {
         path="/teststats"
         element={
           <SignedIn>
+            <RoleProtectedRoute role="admin">
+              <AppLayout>
+                <UserResultsPage />
+              </AppLayout>
+            </RoleProtectedRoute>
+          </SignedIn>
+        }
+      />
+      <Route
+        path="/test-completed"
+        element={
+          <SignedIn>
             <AppLayout>
-              <TestStatsPage />
+              <TestCompletedPage />
+            </AppLayout>
+          </SignedIn>
+        }
+      />{" "}
+      <Route
+        path="/reset-password"
+        element={
+          <SignedOut>
+            <ResetPasswordPage />
+          </SignedOut>
+        }
+      />
+      <Route
+        path="/reset-password-verification"
+        element={
+          <SignedOut>
+            <ResetPasswordVerification />
+          </SignedOut>
+        }
+      />
+      <Route
+        path="/verify-again"
+        element={
+          <SignedIn>
+            <AppLayout>
+              <VerifyAgainPage />
             </AppLayout>
           </SignedIn>
         }
       />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
-
       <Route
         path="/tests"
         element={
-          <SignedIn>
-            <AppLayout>
-              <TestsPage />
-            </AppLayout>
-          </SignedIn>
+          <RoleProtectedRoute>
+            <SignedIn>
+              <AppLayout>
+                <TestsPage />
+              </AppLayout>
+            </SignedIn>
+          </RoleProtectedRoute>
         }
       />
-
+      <Route path="/complete-profile" element={<CompleteSignUpPage />} />
       {/* Основные маршруты */}
     </Routes>
   );

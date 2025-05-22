@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import { useDispatch, useSelector } from "react-redux";
 
-import { Box } from "@mui/material";
+import { Box, Alert } from "@mui/material";
 import BelbinRolesList from "./BelbinRolesList"; // список ролей
 import BelbinRoleEditor from "./BelbinRoleEditor"; // форма редактирования одной роли
 import BelbinTestPreviewDialog from "./BelbinTestPreviewDialog"; // просмотр теста
@@ -20,7 +20,7 @@ import {
   useUpdateBelbinRoleMutation,
   useCreateBelbinRoleMutation,
 } from "../../app/api";
-export const BelbinRolesManager = () => {
+export const BelbinRolesManager = ({ setError }) => {
   const dispatch = useDispatch();
   const { currentRole, mode } = useSelector((state) => state.roles);
   const [previewOpen, setPreviewOpen] = React.useState(false);
@@ -61,7 +61,9 @@ export const BelbinRolesManager = () => {
   const handlePreview = () => {
     setPreviewOpen(true);
   };
-
+  useEffect(() => {
+    if (errorRoles) setError(errorRoles);
+  });
   return (
     <Box sx={{ p: 3 }}>
       {mode === "list" ? (

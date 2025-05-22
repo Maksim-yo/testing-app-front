@@ -4,48 +4,42 @@ import {
   Container,
   TextField,
   Typography,
-  FormControlLabel,
-  Checkbox,
   Paper,
-  Link,
   CircularProgress,
-  InputAdornment,
-  IconButton,
   Snackbar,
   Alert,
+  InputAdornment,
+  IconButton,
 } from "@mui/material";
 import { useSignUp } from "@clerk/clerk-react";
 import { useForm, Controller } from "react-hook-form";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
-import React, { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import React, { useState, useEffect } from "react";
 
-// внутри компонента
-
-const SignUpPage = () => {
-  const { isLoaded, signUp } = useSignUp();
-  const {
-    register,
-    handleSubmit,
-    control,
-    setError,
-    formState: { errors },
-    watch,
-  } = useForm();
+const CompleteSignUpPage = () => {
+  const { isLoaded, signUp, setActive } = useSignUp();
+  const [searchParams] = useSearchParams();
+  const ticket = searchParams.get("__clerk_ticket");
   const navigate = useNavigate();
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success",
   });
-  const [pendingUser, setPendingUser] = useState(null);
-  const [searchParams] = useSearchParams();
+  const [isLoading, setIsLoading] = useState(false);
+  const {
+    control,
+    handleSubmit,
+    watch,
+    setError,
+    formState: { errors },
+  } = useForm();
 
-  const onSubmit = async ({ email, password, confirmPassword, isAdmin }) => {
+  const onSubmit = async ({ password, confirmPassword }) => {
     if (password !== confirmPassword) {
       setError("confirmPassword", {
         type: "manual",
@@ -54,80 +48,71 @@ const SignUpPage = () => {
       return;
     }
 
-    if (!isLoaded) return;
+    if (!isLoaded || !ticket) return;
 
     setIsLoading(true);
     try {
       const result = await signUp.create({
-        emailAddress: email,
+        strategy: "ticket", // Add this line
+        ticket: ticket,
         password,
-        unsafeMetadata: { isAdmin },
       });
 
-      // Отправка информации о пользователе на бэкенд
-
-      // Отправка кода подтверждения на email
-      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-
-      setPendingUser({
-        id: result.id,
-        email,
-        is_admin: isAdmin,
-      });
-      // Показываем snackbar
+      const email = result.emailAddress;
+      const userId = result.id;
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+      }
       setSnackbar({
         open: true,
-        message: "Код подтверждения отправлен на вашу почту.",
+        message: "Регистрация завершена!",
         severity: "success",
       });
 
-      // Переход на страницу подтверждения
-      navigate("/verify-email", { state: { pendingUser: { email, isAdmin } } });
+      // редирект на форму профиля или dashboard
+      navigate("/", {
+        state: { email, userId },
+      });
     } catch (err) {
-      const message = err.errors?.[0]?.message || "Ошибка регистрации";
-      setError("email", { type: "manual", message });
+      console.error(err);
+      const message =
+        err.errors?.[0]?.message || "Ошибка при завершении регистрации";
       setSnackbar({ open: true, message, severity: "error" });
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Показываем спиннер, если ticket отсутствует
+  if (!ticket) {
+    return (
+      <Container maxWidth="sm" sx={{ mt: 8, textAlign: "center" }}>
+        <Typography variant="h6">Ссылка приглашения недействительна</Typography>
+      </Container>
+    );
+  }
+
   return (
     <Container maxWidth="sm">
       <Paper elevation={3} sx={{ p: 4, mt: 8, borderRadius: 3 }}>
         <Typography variant="h4" gutterBottom>
-          Регистрация
+          Завершение регистрации
         </Typography>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          {/* Email */}
-          <TextField
-            fullWidth
-            label="Email"
-            margin="normal"
-            {...register("email", {
-              required: "Email обязательное поле",
-              pattern: {
-                value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/,
-                message: "Неверный формат email",
-              },
-            })}
-            error={!!errors.email}
-            helperText={errors.email?.message}
-          />
+        <Typography variant="body1" gutterBottom>
+          Придумайте пароль для входа
+        </Typography>
 
-          {/* Password */}
+        <form onSubmit={handleSubmit(onSubmit)}>
+          {/* Пароль */}
           <Controller
             name="password"
             control={control}
             rules={{
               required: "Пароль обязателен",
-              minLength: {
-                value: 8,
-                message: "Пароль должен быть не менее 8 символов",
-              },
+              minLength: { value: 8, message: "Минимум 8 символов" },
               pattern: {
                 value: /[A-Z]/,
-                message: "Пароль должен содержать хотя бы одну заглавную букву",
+                message: "Хотя бы одна заглавная буква",
               },
             }}
             render={({ field }) => (
@@ -154,7 +139,7 @@ const SignUpPage = () => {
             )}
           />
 
-          {/* Confirm Password */}
+          {/* Подтверждение */}
           <Controller
             name="confirmPassword"
             control={control}
@@ -191,13 +176,6 @@ const SignUpPage = () => {
             )}
           />
 
-          {/* Admin Checkbox */}
-          <FormControlLabel
-            control={<Checkbox {...register("isAdmin")} />}
-            label="Я администратор"
-          />
-
-          {/* Submit Button */}
           <Button
             type="submit"
             variant="contained"
@@ -208,19 +186,10 @@ const SignUpPage = () => {
             {isLoading ? (
               <CircularProgress size={24} color="inherit" />
             ) : (
-              "Зарегистрироваться"
+              "Завершить регистрацию"
             )}
           </Button>
         </form>
-
-        <Box mt={2} textAlign="center">
-          <Typography variant="body2">
-            Уже есть аккаунт?{" "}
-            <Link component={RouterLink} to="/sign-in">
-              Войти
-            </Link>
-          </Typography>
-        </Box>
       </Paper>
 
       {/* Snackbar */}
@@ -242,4 +211,4 @@ const SignUpPage = () => {
   );
 };
 
-export default SignUpPage;
+export default CompleteSignUpPage;

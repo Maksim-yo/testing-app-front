@@ -16,12 +16,17 @@ import {
 import { BelbinQuestion } from "./BelbinQuestion";
 import { utcToZonedTime, format } from "date-fns-tz";
 import { ru } from "date-fns/locale"; // Правильный импорт русской локали
+import { parseISO } from "date-fns";
 
 const TestPreview = ({ test }) => {
   console.log(test);
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   const created_at = utcToZonedTime(test.created_at, timeZone);
+  const endDateISO = test.end_date; // "2025-05-16T05:17:00"
+  const endDate = endDateISO
+    ? utcToZonedTime(parseISO(endDateISO), timeZone)
+    : null;
 
   const sortedQuestions = [
     ...test.questions.map((q) => ({ ...q, type: "regular" })),
@@ -35,11 +40,16 @@ const TestPreview = ({ test }) => {
 
       <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
         <Chip
-          label={`Лимит времени: ${format(test.end_date, "dd-MM-yyyy HH:mm", {
-            timeZone,
-            locale: ru,
-          })} `}
+          label={
+            endDate
+              ? `Лимит времени: ${format(endDate, "dd-MM-yyyy HH:mm", {
+                  timeZone,
+                  locale: ru,
+                })}`
+              : "Лимит времени не указан"
+          }
         />
+
         <Chip
           label={test.is_active ? "Активный" : "Неактивный"}
           color={test.is_active ? "success" : "default"}

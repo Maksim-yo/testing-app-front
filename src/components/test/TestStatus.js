@@ -12,7 +12,6 @@ const TestStatus = ({ onChange, status }) => {
   const statusOptions = [
     { value: "active", label: "Активен", color: "success" },
     { value: "draft", label: "Черновик", color: "warning" },
-    { value: "archive", label: "Архив", color: "default" },
   ];
   const [anchorEl, setAnchorEl] = useState(null);
   const [open, setOpen] = useState(false);

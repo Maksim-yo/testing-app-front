@@ -1,5 +1,5 @@
-import React from "react";
-import { Box, Button, Typography, Paper } from "@mui/material";
+import React, { useEffect } from "react";
+import { Box, Button, Typography, Paper, Alert } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import {
   deletePosition,
@@ -10,7 +10,15 @@ import {
 import BeblinPositionEditor from "./BelbinPositionEditor";
 import { BelbinPositionList } from "./BelbinPositionList";
 import { useDeleteBelbinPositionsMutation } from "../../app/api";
-export const BelbinPositionManager = () => {
+import { useGetBelbinPositionsQuery } from "../../app/api";
+
+export const BelbinPositionManager = ({ setError }) => {
+  const {
+    data: positions = [],
+    isLoading: isLoadingRoles,
+    error: errorRoles,
+  } = useGetBelbinPositionsQuery();
+
   const dispatch = useDispatch();
   const currentPosition = useSelector(
     (state) => state.positionsBelbin.currentPosition
@@ -36,7 +44,9 @@ export const BelbinPositionManager = () => {
     dispatch(resetCurrentPosition());
     dispatch(setMode("list"));
   };
-
+  useEffect(() => {
+    if (errorRoles) setError(errorRoles);
+  });
   return (
     <Box sx={{ p: 3 }}>
       {mode === "edit" && currentPosition ? (
@@ -71,6 +81,7 @@ export const BelbinPositionManager = () => {
             }}
           >
             <BelbinPositionList
+              positions={positions}
               onEdit={handleEditPosition}
               onDelete={handleDeletePosition}
             />

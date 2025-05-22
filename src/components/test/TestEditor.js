@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Box,
   TextField,
@@ -7,8 +7,6 @@ import {
   Paper,
   Avatar,
   IconButton,
-  Switch,
-  FormControlLabel,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -17,11 +15,13 @@ import {
 import {
   Visibility as VisibilityIcon,
   Assignment as AssignmentIcon,
+  Close,
+  Image as ImageIcon,
+  Settings,
+  Add,
 } from "@mui/icons-material";
-import { Add, Close, Image, Settings } from "@mui/icons-material";
 import { QuestionEditor } from "./QuestionEditor";
 import { TestSettingsDilog } from "./TestSettingsDIalog";
-import { useSelector, useDispatch } from "react-redux";
 import { Snackbar, Alert } from "@mui/material";
 import { ValidationDialog } from "./ValidationDialog";
 import { validateTest } from "./TestValidate";
@@ -30,135 +30,249 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import ruLocale from "date-fns/locale/ru";
 import { startOfToday } from "date-fns";
+import isEqual from "lodash.isequal";
+import { diff } from "deep-diff";
 
+function normalizeTest(test) {
+  const sortById = (arr) => {
+    if (!Array.isArray(arr)) return arr;
+    return arr
+      .map((item) => normalizeTest(item))
+      .sort((a, b) => (a?.id ?? 0) - (b?.id ?? 0));
+  };
+
+  if (Array.isArray(test)) return sortById(test);
+
+  if (test && typeof test === "object") {
+    const result = {};
+    Object.keys(test)
+      .sort()
+      .forEach((key) => {
+        result[key] = normalizeTest(test[key]);
+      });
+    return result;
+  }
+
+  return test;
+}
 export const TestEditor = ({
   initialTest,
   onSave,
   onCancel,
   onPreview,
   saveSettings,
+  onBack,
+  triggerBack,
+  resetTriggerBack,
 }) => {
+  // Состояния компонента
   const [title, setTitle] = useState(initialTest.title || "");
-  const initialQuestions = initialTest?.questions || [];
-  const belbinQuestions = (initialTest?.belbin_questions || []).map((q) => ({
-    ...q,
-    answers: (q.answers || []).map((answer) => ({
-      ...answer,
-      role: {
-        id: answer.role_id,
-        name: answer.role_name,
-      },
-      role_id: undefined, // Убираем role_id
-      role_name: undefined, // Убираем role_name
-    })),
-    isBelbin: true,
-  }));
-  const allQuestions = [...initialQuestions, ...belbinQuestions];
-
-  const [questions, setQuestions] = useState(allQuestions);
-  const belbinCount = questions.filter((q) => q.isBelbin).length;
   const [testImage, setTestImage] = useState(initialTest.image || null);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [testSettings, setTestSettings] = useState(
-    initialTest.test_settings || {
-      min_questions: 4,
-      belbin_block: 7,
-      belbin_questions_in_block: 4,
-    }
+  const [timeLimit, setTimeLimit] = useState(initialTest.time_limit_minutes);
+  const [deadline, setDeadline] = useState(
+    initialTest?.end_date ? new Date(initialTest.end_date) : null
   );
-  const dispatch = useDispatch();
-  const [deadline, setDeadline] = useState(initialTest?.end_date || null);
-  console.log(initialTest);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
   });
-  console.log(questions);
   const [settingsOpen, setSettingsOpen] = useState(false);
-
-  const imageInputRef = useRef();
   const [validationErrors, setValidationErrors] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
-  const handleSaveClick = () => {
-    console.log(initialTest);
-    const errors = validateTest(
-      {
-        ...initialTest,
-        title,
-        image: testImage,
-        questions,
-        deadline: deadline,
+  const imageInputRef = useRef();
 
-        // minQuestions,
-        // maxQuestions,
-      },
-      testSettings
-    );
-    if (errors.length > 0) {
-      setValidationErrors(errors);
-      setDialogOpen(true);
-    } else {
-      // Сохраняем тест
+  // Подготовка вопросов
+  const prepareQuestions = useCallback(() => {
+    const initialQuestions = initialTest?.questions || [];
+    const belbinQuestions = (initialTest?.belbin_questions || []).map((q) => ({
+      ...q,
+      answers: (q.answers || []).map((answer) => ({
+        ...answer,
+        role: {
+          id: answer.role_id,
+          name: answer.role_name,
+        },
+        role_id: undefined,
+        role_name: undefined,
+      })),
+      isBelbin: true,
+    }));
+    return [...initialQuestions, ...belbinQuestions];
+  }, [initialTest]);
+  const isTestChanged = () => {
+    const current = {
+      ...initialTest,
+      title,
+      image: testImage,
+      questions: questions,
+      end_date: normalizeDate(deadline?.toISOString() || null),
+
+      time_limit_minutes: timeLimit,
+      test_settings: { ...testSettings, has_time_limit: null },
+    };
+
+    const baseTest = {
+      ...initialTest,
+      end_date: normalizeDate(initialTest.end_date),
+
+      test_settings: { ...initialTest.test_settings, has_time_limit: null },
+    };
+    const normalizedCurrent = normalizeTest(current);
+    const normalizedBase = normalizeTest(baseTest);
+    const differences = diff(normalizedCurrent, normalizedBase);
+
+    return !isEqual(normalizedCurrent, normalizedBase);
+  };
+  const [questions, setQuestions] = useState(prepareQuestions());
+  const belbinCount = questions.filter((q) => q.isBelbin).length;
+  const normalizeDate = (dateStr) =>
+    dateStr ? new Date(dateStr).toISOString().replace(".000", "") : null;
+
+  // Настройки теста
+  const [testSettings, setTestSettings] = useState({
+    min_questions: 4,
+    belbin_block: 7,
+    belbin_questions_in_block: 4,
+    ...(initialTest.test_settings || {}),
+    has_time_limit: initialTest.time_limit_minutes !== null,
+  });
+  const handleShowCancelDialogue = () => {
+    console.log("Test changed");
+    console.log(isTestChanged());
+    if (!isTestChanged()) {
+      onCancel();
+      return;
+    }
+    console.log("Test changed");
+    setCancelDialogOpen(true);
+  };
+  // Обработчик триггера возврата
+  useEffect(() => {
+    if (triggerBack) {
+      handleShowCancelDialogue();
+      resetTriggerBack();
+    }
+  }, [triggerBack, resetTriggerBack]);
+
+  // Обработчик загрузки изображения
+  const handleImageUpload = useCallback((file, callback) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => callback(e.target.result);
+    reader.readAsDataURL(file);
+  }, []);
+
+  // Валидация и сохранение
+  const validateAndSave = useCallback(
+    (status = "active") => {
+      const errors = validateTest(
+        {
+          ...initialTest,
+          title,
+          image: testImage,
+          questions,
+          deadline,
+          time_limit_minutes: timeLimit,
+        },
+        testSettings
+      );
+
+      if (errors.length > 0) {
+        setValidationErrors(errors);
+        setDialogOpen(true);
+        return false;
+      }
+
       onSave({
         ...initialTest,
         title,
         image: testImage,
         questions,
-        end_date: deadline.toISOString(),
+        end_date: deadline?.toISOString(),
         test_settings: testSettings,
-        deadline: deadline,
+        time_limit_minutes: timeLimit,
+        status,
       });
+      return true;
+    },
+    [
+      initialTest,
+      title,
+      testImage,
+      questions,
+      deadline,
+      timeLimit,
+      testSettings,
+      onSave,
+    ]
+  );
+
+  // Обработчики действий
+  const handleSaveDraft = useCallback(() => {
+    if (validateAndSave("draft")) {
+      setCancelDialogOpen(false);
+    } else {
+      setCancelDialogOpen(false);
     }
-  };
-  const handleAddQuestion = () => {
-    if (questions.length > 0 && !questions[questions.length - 1].isBelbin) {
-      let is_correct = false;
-      for (const opt of questions[questions.length - 1].answers) {
-        if (opt.is_correct) is_correct = true;
+  }, [validateAndSave]);
+
+  const handleSaveClick = useCallback(() => {
+    validateAndSave();
+  }, [validateAndSave]);
+
+  // Обработчик добавления вопроса
+  const handleAddQuestion = useCallback(() => {
+    const lastQuestion = questions[questions.length - 1];
+
+    // Валидация последнего вопроса перед добавлением нового
+    if (lastQuestion) {
+      // Проверка для обычных вопросов
+      if (!lastQuestion.isBelbin) {
+        if (lastQuestion.question_type !== "text_answer") {
+          const hasCorrectAnswer = lastQuestion.answers.some(
+            (opt) => opt.is_correct
+          );
+          if (!hasCorrectAnswer) {
+            setSnackbar({
+              open: true,
+              message:
+                "Вопрос должен иметь хотя бы один правильный вариант. Измените в настройках при необходимости",
+            });
+            return;
+          }
+
+          if (lastQuestion.answers.length < testSettings.min_questions) {
+            setSnackbar({
+              open: true,
+              message: `Вопрос должен иметь минимум ${testSettings.min_questions} вариантов. Измените в настройках при необходимости`,
+            });
+            return;
+          }
+        }
       }
-      if (!is_correct) {
+      // Проверка для вопросов Белбина
+      else if (
+        lastQuestion.answers.length < testSettings.belbin_questions_in_block
+      ) {
         setSnackbar({
           open: true,
-          message: `Вопрос должен иметь хотя бы один правильный вариант. Измените в настройках при необходимости`,
+          message: `Вопрос Белбина должен иметь минимум ${testSettings.belbin_questions_in_block} вариантов. Измените в настройках при необходимости`,
+        });
+        return;
+      }
+
+      if (lastQuestion.text === "") {
+        setSnackbar({
+          open: true,
+          message: "Вопрос должен иметь заголовок.",
         });
         return;
       }
     }
 
-    if (
-      questions.length > 0 &&
-      !questions[questions.length - 1].isBelbin &&
-      questions[questions.length - 1].answers.length <
-        testSettings.min_questions
-    ) {
-      setSnackbar({
-        open: true,
-        message: `Вопрос должны иметь минимум ${testSettings.min_questions} вариантов. Измените в настройках при необходимости`,
-      });
-      return;
-    }
-    if (
-      questions.length > 0 &&
-      questions[questions.length - 1].isBelbin &&
-      questions[questions.length - 1].answers.length <
-        testSettings.belbinOptionsPerBlock
-    ) {
-      setSnackbar({
-        open: true,
-        message: `Вопрос Белбина должны иметь минимум ${testSettings.belbin_questions_in_block} вариантов. Измените в настройках при необходимости`,
-      });
-      return;
-    }
-    console.log(questions[questions.length - 1]);
-    if (questions.length > 0 && questions[questions.length - 1].title === "") {
-      setSnackbar({
-        open: true,
-        message: `Вопрос должны иметь заголовок.`,
-      });
-      return;
-    }
+    // Добавление нового вопроса
     setQuestions([
       ...questions,
       {
@@ -168,27 +282,22 @@ export const TestEditor = ({
         image: null,
         isBelbin: false,
         order: questions.length,
+        points: 1,
       },
     ]);
-  };
+  }, [questions, testSettings]);
 
-  const handleImageUpload = (file, callback) => {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => callback(e.target.result);
-    reader.readAsDataURL(file);
-  };
+  // Обработчик изменения вопроса
+  const handleQuestionChange = useCallback((index, updatedQuestion) => {
+    setQuestions((prev) =>
+      prev.map((q, i) => (i === index ? updatedQuestion : q))
+    );
+  }, []);
 
-  const handleSave = () => {
-    onSave({
-      ...initialTest,
-      title,
-      image: testImage,
-      questions,
-      // minQuestions,
-      // maxQuestions,
-    });
-  };
+  // Обработчик удаления вопроса
+  const handleQuestionDelete = useCallback((index) => {
+    setQuestions((prev) => prev.filter((_, i) => i !== index));
+  }, []);
 
   return (
     <Paper sx={{ p: 3 }}>
@@ -197,20 +306,23 @@ export const TestEditor = ({
         onClose={() => setDialogOpen(false)}
         errors={validationErrors}
       />
+
       <Snackbar
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
         open={snackbar.open}
         autoHideDuration={4000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
       >
         <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
           severity="warning"
           sx={{ width: "100%" }}
         >
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Заголовок и кнопки управления */}
       <Box display="flex" alignItems="center" justifyContent="space-between">
         <Typography variant="h5" gutterBottom>
           {initialTest?.id === "new"
@@ -218,47 +330,42 @@ export const TestEditor = ({
             : "Редактирование теста"}
         </Typography>
         <Box>
-          <IconButton
-            // onClick={handleAssignTest}
-            variant="contained"
-            startIcon={<AssignmentIcon />}
-          >
-            {/* Назначить */}
+          {/* <IconButton variant="contained" startIcon={<AssignmentIcon />}>
             <AssignmentIcon color="info" />
-          </IconButton>
+          </IconButton> */}
           <IconButton onClick={() => setSettingsOpen(true)}>
             <Settings />
           </IconButton>
-          <IconButton
+          {/* <IconButton
             onClick={() =>
               onPreview({
                 ...initialTest,
                 title,
                 image: testImage,
                 questions,
-                end_date: deadline.toISOString(),
+                end_date: deadline?.toISOString(),
                 test_settings: testSettings,
               })
             }
           >
             <VisibilityIcon color="info" />
-          </IconButton>
+          </IconButton> */}
         </Box>
       </Box>
-      {/* Настройки теста - диалог */}
+
+      {/* Диалог настроек теста */}
       {settingsOpen && (
         <TestSettingsDilog
           initialTest={initialTest}
           settingsOpen={settingsOpen}
           setSettingsOpen={setSettingsOpen}
           testSettings={testSettings}
-          onSave={(newSettings) => {
-            setTestSettings(newSettings);
-          }}
+          onSave={setTestSettings}
         />
       )}
-      {/* Изображение и Название теста */}
-      {testImage ? (
+
+      {/* Изображение теста */}
+      {/* {testImage ? (
         <Box position="relative" display="inline-block" mb={2}>
           <Avatar
             variant="rounded"
@@ -282,13 +389,14 @@ export const TestEditor = ({
       ) : (
         <Button
           variant="outlined"
-          startIcon={<Image />}
+          startIcon={<ImageIcon />}
           onClick={() => imageInputRef.current.click()}
           sx={{ mb: 2 }}
         >
           Добавить изображение к тесту
         </Button>
-      )}
+      )} */}
+
       <input
         type="file"
         accept="image/*"
@@ -296,6 +404,8 @@ export const TestEditor = ({
         onChange={(e) => handleImageUpload(e.target.files[0], setTestImage)}
         style={{ display: "none" }}
       />
+
+      {/* Основные поля теста */}
       <TextField
         fullWidth
         label="Название теста"
@@ -303,6 +413,7 @@ export const TestEditor = ({
         onChange={(e) => setTitle(e.target.value)}
         sx={{ mb: 3 }}
       />
+
       <LocalizationProvider
         dateAdapter={AdapterDateFns}
         adapterLocale={ruLocale}
@@ -325,10 +436,25 @@ export const TestEditor = ({
         </Box>
       </LocalizationProvider>
 
+      {testSettings.has_time_limit && (
+        <Box sx={{ mb: 2 }}>
+          <TextField
+            type="number"
+            label="Лимит времени (в минутах)"
+            value={timeLimit || ""}
+            onChange={(e) => setTimeLimit(Number(e.target.value))}
+            inputProps={{ min: 0 }}
+            fullWidth
+          />
+        </Box>
+      )}
+
+      {/* Список вопросов */}
       <Typography variant="h6" gutterBottom>
         Вопросы
       </Typography>
-      {questions && questions.length > 0 ? (
+
+      {questions.length > 0 ? (
         questions.map((question, index) => (
           <Box
             key={question.id}
@@ -356,20 +482,17 @@ export const TestEditor = ({
               belbinCount={belbinCount}
               question={question}
               setTestSettings={saveSettings}
-              onChange={(updatedQuestion) => {
-                const newQuestions = [...questions];
-                newQuestions[index] = updatedQuestion;
-                setQuestions(newQuestions);
-              }}
-              onDelete={() => {
-                setQuestions(questions.filter((_, i) => i !== index));
-              }}
+              onChange={(updatedQuestion) =>
+                handleQuestionChange(index, updatedQuestion)
+              }
+              onDelete={() => handleQuestionDelete(index)}
             />
           </Box>
         ))
       ) : (
-        <div>No questions available</div>
+        <Typography>Нет вопросов</Typography>
       )}
+
       <Box mt={2}>
         <Button
           onClick={handleAddQuestion}
@@ -379,14 +502,18 @@ export const TestEditor = ({
           Добавить вопрос
         </Button>
       </Box>
+
+      {/* Кнопки сохранения/отмены */}
       <Box mt={4} display="flex" justifyContent="space-between">
-        <Button onClick={() => setCancelDialogOpen(true)} variant="outlined">
+        <Button onClick={() => handleShowCancelDialogue()} variant="outlined">
           Отмена
         </Button>
         <Button onClick={handleSaveClick} variant="contained">
           Сохранить тест
         </Button>
       </Box>
+
+      {/* Диалог подтверждения отмены */}
       <Dialog
         open={cancelDialogOpen}
         onClose={() => setCancelDialogOpen(false)}
@@ -399,32 +526,16 @@ export const TestEditor = ({
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button
-            onClick={() => {
-              // Сохранить как черновик
-              onSave({
-                ...initialTest,
-                title,
-                image: testImage,
-                questions,
-                status: "draft", // например, флаг черновика
-                end_date: deadline.toISOString(),
-              });
-              setCancelDialogOpen(false);
-            }}
-          >
-            Сохранить как черновик
-          </Button>
+          <Button onClick={handleSaveDraft}>Сохранить как черновик</Button>
           <Button
             onClick={() => {
               setCancelDialogOpen(false);
-              onCancel(); // выход без сохранения
+              onCancel();
             }}
             color="error"
           >
             Выйти без сохранения
           </Button>
-          <Button onClick={() => setCancelDialogOpen(false)}>Отмена</Button>
         </DialogActions>
       </Dialog>
     </Paper>

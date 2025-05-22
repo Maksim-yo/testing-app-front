@@ -37,7 +37,7 @@ const SignInPage = () => {
     try {
       const result = await signIn.create({ identifier: email, password });
       await setActive({ session: result.createdSessionId });
-      navigate("/dashboard"); // Перенаправление на страницу после успешного входа
+      navigate("/tests"); // Перенаправление на страницу после успешного входа
     } catch (err) {
       console.error("Ошибка при входе:", err); // Добавим вывод ошибки для отладки
 
@@ -64,10 +64,10 @@ const SignInPage = () => {
           {/* Email */}
           <TextField
             fullWidth
-            label="Электронная почта"
+            label="Электронная почта\логин"
             margin="normal"
             {...register("email", {
-              required: "Электронная почта обязательна",
+              required: "Это поле обязательна",
             })}
             error={!!errors.email}
             helperText={errors.email?.message}
@@ -130,6 +130,14 @@ const SignInPage = () => {
             Нет аккаунта?{" "}
             <Link component={RouterLink} to="/sign-up">
               Зарегистрироваться
+            </Link>
+          </Typography>
+        </Box>
+        <Box mt={2} textAlign="center">
+          <Typography variant="body2">
+            Забыли пароль?{" "}
+            <Link component={RouterLink} to="/reset-password">
+              Восстановить
             </Link>
           </Typography>
         </Box>

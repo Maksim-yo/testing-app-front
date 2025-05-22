@@ -18,8 +18,19 @@ import {
   ListItemText,
   FormControlLabel,
   Switch,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
-import { Delete, Add, Image, Close, Co2Sharp } from "@mui/icons-material";
+import {
+  Delete,
+  Add,
+  Image,
+  Close,
+  Co2Sharp,
+  QuestionMarkSharp,
+} from "@mui/icons-material";
 import { useSelector, useDispatch } from "react-redux";
 import { Snackbar, Alert } from "@mui/material";
 import { useGetBelbinRolesQuery } from "../../app/api";
@@ -57,6 +68,21 @@ export const QuestionEditor = ({
     });
   };
   const handleAddOption = () => {
+    if (question.question_type === "text_answer") {
+      onChange({
+        ...question,
+        answers: [
+          ...question.answers,
+          {
+            text: newOption.trim(),
+            is_correct: true,
+            image: null,
+            role: "", // добавим поле role
+          },
+        ],
+      });
+      return;
+    }
     if (newOption.trim()) {
       onChange({
         ...question,
@@ -90,8 +116,39 @@ export const QuestionEditor = ({
     handleImageUpload(e.target.files[0], (image) => {
       onChange({ ...question, image });
     });
+    question.answers = [
+      {
+        text: newOption.trim(),
+        is_correct: true,
+        image: null,
+        role: "", // добавим поле role}];
+      },
+    ];
+    onChange({ ...question });
   };
-
+  const handleQuestionTypeChange = (e) => {
+    if (e.target.value === "text_answer") {
+      const answer = [
+        {
+          text: newOption.trim(),
+          is_correct: true,
+          image: null,
+          role: "", // добавим поле role}];
+        },
+      ];
+      onChange({ ...question, question_type: e.target.value, answers: answer });
+    } else {
+      const answers = question.answers.map((a, i) => ({
+        ...a,
+        is_correct: false,
+      }));
+      onChange({
+        ...question,
+        question_type: e.target.value,
+        answers: answers,
+      });
+    }
+  };
   const handleOptionImageChange = (index, e) => {
     handleImageUpload(e.target.files[0], (image) => {
       const newOptions = question.answers.map((opt, i) =>
@@ -147,11 +204,13 @@ export const QuestionEditor = ({
     }
     setRoleDialogOpen(false);
   };
-
+  const handlePointsChange = (e) => {
+    const points = parseInt(e.target.value) || 0;
+    onChange({ ...question, points });
+  };
   const handleCloseDialog = () => {
     setRoleDialogOpen(false);
   };
-  console.log(question);
   return (
     <Box
       sx={{
@@ -188,6 +247,33 @@ export const QuestionEditor = ({
           onChange={(e) => onChange({ ...question, text: e.target.value })}
           fullWidth
         />
+        {!question.isBelbin && (
+          <>
+            <TextField
+              label="Баллы за вопрос"
+              type="number"
+              value={question.points || 1}
+              onChange={handlePointsChange}
+              sx={{ width: 120, ml: 2 }}
+              inputProps={{ min: 0 }}
+            />
+            <FormControl sx={{ minWidth: 200, ml: 2 }}>
+              <InputLabel id="question-type-label">Тип вопроса</InputLabel>
+              <Select
+                labelId="question-type-label"
+                value={question.question_type || "single_choice"}
+                label="Тип вопроса"
+                onChange={(e) => handleQuestionTypeChange(e)}
+              >
+                <MenuItem value="single_choice" default>
+                  Одиночный выбор
+                </MenuItem>
+                <MenuItem value="multiple_choice">Множественный выбор</MenuItem>
+                <MenuItem value="text_answer">Текстовый ответ</MenuItem>
+              </Select>
+            </FormControl>
+          </>
+        )}
         <IconButton
           onClick={onDelete}
           color="error"
@@ -197,7 +283,6 @@ export const QuestionEditor = ({
           <Delete />
         </IconButton>
       </Box>
-
       {/* Варианты ответов */}
       {question?.answers?.map((option, index) => (
         <Box
@@ -211,15 +296,17 @@ export const QuestionEditor = ({
           }}
         >
           <Box display="flex" alignItems="center" flexWrap="wrap" gap={1}>
-            <Checkbox
-              sx={{
-                visibility: question.isBelbin ? "hidden" : "visible",
-                pointerEvents: question.isBelbin ? "none" : "auto",
-              }}
-              checked={option.is_correct}
-              onChange={() => handleToggleCorrect(index)}
-              color="primary"
-            />
+            {question.question_type !== "text_answer" && (
+              <Checkbox
+                sx={{
+                  visibility: question.isBelbin ? "hidden" : "visible",
+                  pointerEvents: question.isBelbin ? "none" : "auto",
+                }}
+                checked={option.is_correct}
+                onChange={() => handleToggleCorrect(index)}
+                color="primary"
+              />
+            )}
             <TextField
               value={option.text}
               onChange={(e) =>
@@ -230,7 +317,7 @@ export const QuestionEditor = ({
               sx={{ flexGrow: 1, minWidth: 200 }}
             />
 
-            {option.image ? (
+            {/* {option.image ? (
               <Box position="relative" sx={{ width: 56, height: 56 }}>
                 <Avatar
                   src={option.image}
@@ -257,7 +344,7 @@ export const QuestionEditor = ({
               >
                 <Image />
               </IconButton>
-            )}
+            )} */}
 
             <input
               type="file"
@@ -299,7 +386,6 @@ export const QuestionEditor = ({
           </Box>
         </Box>
       ))}
-
       {/* Диалог выбора роли */}
       <Dialog
         open={roleDialogOpen}
@@ -354,7 +440,6 @@ export const QuestionEditor = ({
           </Button>
         </DialogActions>
       </Dialog>
-
       {/* Добавление нового варианта ответа */}
       <Box display="flex" mt={2}>
         <TextField
@@ -374,6 +459,7 @@ export const QuestionEditor = ({
           Добавить
         </Button>
       </Box>
+
       <Box mt={2}>
         <FormControlLabel
           control={

@@ -6,6 +6,7 @@ const BelbinRoleEditor = ({ initialRole, onSave, onCancel }) => {
   const [description, setDescription] = useState(
     initialRole?.description || ""
   );
+  const isFormValid = name.trim() !== "";
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -37,7 +38,6 @@ const BelbinRoleEditor = ({ initialRole, onSave, onCancel }) => {
         fullWidth
         multiline
         rows={4}
-        required
         sx={{ mb: 3 }}
       />
 
@@ -45,7 +45,7 @@ const BelbinRoleEditor = ({ initialRole, onSave, onCancel }) => {
         <Button variant="outlined" onClick={onCancel}>
           Отмена
         </Button>
-        <Button variant="contained" type="submit">
+        <Button variant="contained" type="submit" disabled={!isFormValid}>
           Сохранить
         </Button>
       </Box>

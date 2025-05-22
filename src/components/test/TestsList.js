@@ -26,6 +26,7 @@ import {
   Avatar,
   Badge,
   CircularProgress,
+  Alert,
 } from "@mui/material";
 import {
   Edit as EditIcon,
@@ -51,11 +52,23 @@ import {
   useGetPositionsQuery,
   useGetEmployeesQuery,
   useDeleteTestMutation,
+  useSetAssignmentsToTestMutation,
+  useDeleteAssignmentMutation,
 } from "../../app/api";
 import { ru } from "date-fns/locale"; // Правильный импорт русской локали
 import { utcToZonedTime, format } from "date-fns-tz";
 import { useUpdateTestStatusMutation } from "../../app/api";
 
+const getTestStatus = (status) => {
+  // if (status === "completed") return { label: "Завершён", color: "success" };
+  if (status === "expired") return { label: "Истёк срок", color: "error" };
+  if (status === "draft") return { label: "Черновик", color: "warning" };
+
+  // if (status === "in_progress")
+  //   return { label: "В процессе", color: "warning" };
+
+  return { label: "Активен", color: "success" };
+};
 export const TestList = ({ onCreate, onEdit, onPreview, onClick }) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
@@ -67,10 +80,27 @@ export const TestList = ({ onCreate, onEdit, onPreview, onClick }) => {
   const [deleteTest] = useDeleteTestMutation();
   const navigate = useNavigate();
   const {
-    data: tests = [],
+    data: data_tests = [],
     isLoading: isLoadingTests,
     error: errorTests,
   } = useGetTestsQuery();
+
+  const statusOrder = {
+    not_started: 0,
+    active: 1,
+    draft: 2,
+    expired: 3,
+  };
+  const tests = [...data_tests].sort((a, b) => {
+    return statusOrder[a.status] - statusOrder[b.status];
+  });
+
+  const [deleteAssignment, { isLoading: isLoadingAssignmentsDelete }] =
+    useDeleteAssignmentMutation();
+  const [setAssignmentsToTest, { isLoading: isLoadingAssignmentsCreate }] =
+    useSetAssignmentsToTestMutation();
+  const isLoadingAssignments =
+    isLoadingAssignmentsDelete || isLoadingAssignmentsCreate;
   const {
     data: positions = [],
     isLoading: isLoadingPositions,
@@ -94,13 +124,16 @@ export const TestList = ({ onCreate, onEdit, onPreview, onClick }) => {
   };
 
   const handleChangeStatus = async (test_id, status) => {
-    console.log(test_id, status);
     await updateTestStatus({ testId: test_id, status });
   };
 
   const confirmDelete = (id) => {
     setTestToDelete(id);
     setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteAssignments = async () => {
+    await deleteAssignment;
   };
 
   const handleDeleteTest = async () => {
@@ -112,21 +145,27 @@ export const TestList = ({ onCreate, onEdit, onPreview, onClick }) => {
     }
   };
 
+  const handleRemoveAssignments = async (removedIds) => {
+    const data = removedIds.map((id) => ({
+      test_id: selectedTest.id,
+      employee_id: id,
+    }));
+    await deleteAssignment(data);
+    setAssignDialogOpen(false);
+  };
+
   const openAssignDialog = (test) => {
-    console.log(test);
     setSelectedTest(test);
     setSelectedEmployees(test.assignedTo || []);
     setAssignDialogOpen(true);
   };
 
-  const handleAssignTest = () => {
-    dispatch(
-      assignTest({
-        id: selectedTest.id,
-        assignedTo: selectedEmployees,
-        dueDate,
-      })
-    );
+  const handleAssignTest = async () => {
+    const data = selectedEmployees.map((id) => ({
+      test_id: selectedTest.id,
+      employee_id: id,
+    }));
+    await setAssignmentsToTest(data);
 
     setAssignDialogOpen(false);
   };
@@ -162,7 +201,13 @@ export const TestList = ({ onCreate, onEdit, onPreview, onClick }) => {
     timeZone,
     locale: ru,
   });
-
+  if (errorTests) {
+    return (
+      <Alert severity="error" sx={{ mb: 4 }}>
+        Произошла ошибка при загрузке данных. Попробуйте позже.
+      </Alert>
+    );
+  }
   return (
     <Box sx={{ width: "100%" }}>
       <Typography variant="h4" gutterBottom>
@@ -218,7 +263,7 @@ export const TestList = ({ onCreate, onEdit, onPreview, onClick }) => {
 
               const created_at = utcToZonedTime(test.created_at, timeZone);
               const updated_at = utcToZonedTime(test.updated_at, timeZone);
-
+              const end_at = utcToZonedTime(test.end_date, timeZone);
               return (
                 <React.Fragment key={test.id}>
                   <ListItem button onClick={() => onClick(test)}>
@@ -226,6 +271,11 @@ export const TestList = ({ onCreate, onEdit, onPreview, onClick }) => {
                       primary={
                         <Box sx={{ display: "flex", alignItems: "center" }}>
                           <Typography variant="h6">{test.title}</Typography>
+                          <Chip
+                            size="small"
+                            label={getTestStatus(test?.status).label}
+                            color={getTestStatus(test?.status).color}
+                          />{" "}
                           {test.assignedTo?.length > 0 && (
                             <Badge
                               badgeContent={test.assignedTo.length}
@@ -252,11 +302,16 @@ export const TestList = ({ onCreate, onEdit, onPreview, onClick }) => {
                             timeZone,
                             locale: ru,
                           })}{" "}
-                          | Обновлен:{" "}
+                          {/* | Обновлен:{" "}
                           {format(updated_at, "dd-MM-yyyy HH:mm", {
                             timeZone,
                             locale: ru,
-                          })}{" "}
+                          })}{" "} */}
+                          | Окончание:
+                          {format(end_at, "dd-MM-yyyy HH:mm", {
+                            timeZone,
+                            locale: ru,
+                          })}
                           <br />
                           Вопросов:
                           {test.questions.length + test.belbin_questions.length}
@@ -272,13 +327,14 @@ export const TestList = ({ onCreate, onEdit, onPreview, onClick }) => {
                     <ListItemSecondaryAction
                       sx={{ display: "flex", alignItems: "center" }}
                     >
-                      <TestStatus
-                        onChange={(status) =>
-                          handleChangeStatus(test.id, status)
-                        }
-                        status={test.status}
-                      />
-
+                      {test.status !== "expired" && (
+                        <TestStatus
+                          onChange={(status) =>
+                            handleChangeStatus(test.id, status)
+                          }
+                          status={test.status}
+                        />
+                      )}
                       <IconButton onClick={() => handleViewTest(test)}>
                         <VisibilityIcon color="info" />
                       </IconButton>
@@ -336,16 +392,9 @@ export const TestList = ({ onCreate, onEdit, onPreview, onClick }) => {
         positions={positions}
         selectedEmployees={selectedEmployees}
         setSelectedEmployees={setSelectedEmployees}
-        onAssign={(assignedTo) => {
-          dispatch(
-            assignTest({
-              id: selectedTest.id,
-              assignedTo,
-              dueDate: null, // или можешь снова добавить дату, если нужно
-            })
-          );
-          setAssignDialogOpen(false);
-        }}
+        onAssign={handleAssignTest}
+        isLoadingAssignments={isLoadingAssignments}
+        onRemove={handleRemoveAssignments}
       />
 
       {/* Диалог подтверждения удаления */}

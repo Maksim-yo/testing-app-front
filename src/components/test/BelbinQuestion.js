@@ -1,24 +1,28 @@
-import React, { useState } from "react";
-import {
-  Box,
-  Typography,
-  LinearProgress,
-  Button,
-  FormControl,
-  FormLabel,
-} from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Box, Typography, FormControl, Grid, Button } from "@mui/material";
 import BelbinSlider from "./BelbinSlider";
-
-export const BelbinQuestion = ({ question }) => {
-  const [answers, setAnswers] = useState(
-    question.answers.map(() => 0) // Инициализируем ответы для текущего вопроса
+import { useGetBelbinRolesQuery } from "../../app/api";
+export const BelbinQuestion = ({ question, isEditable = true }) => {
+  const initialScores = question.answers.map((a) => a.score ?? 0);
+  const [answers, setAnswers] = useState(initialScores);
+  const [totalPoints, setTotalPoints] = useState(
+    initialScores.reduce((sum, val) => sum + val, 0)
   );
-  const [totalPoints, setTotalPoints] = useState(0);
-  const [error, setError] = useState("");
-  const navigate = useNavigate();
+  const { data: belbinRoles } = useGetBelbinRolesQuery();
+
+  useEffect(() => {
+    // Обновляем баллы, если переданный question изменился
+    const newScores = question.answers.map((a) => a.user_score ?? 0);
+    console.log(question);
+    console.log(newScores);
+
+    setAnswers(newScores);
+    setTotalPoints(newScores.reduce((sum, val) => sum + val, 0));
+  }, [question]);
 
   const handleSliderChange = (index) => (event, newValue) => {
+    if (!isEditable) return;
+
     const newAnswers = [...answers];
     newAnswers[index] = newValue;
 
@@ -27,54 +31,17 @@ export const BelbinQuestion = ({ question }) => {
 
     setAnswers(newAnswers);
     setTotalPoints(sum);
-    setError("");
   };
-
-  const handleNext = () => {
-    if (totalPoints !== 10) {
-      setError("Необходимо распределить ровно 10 баллов");
-      return;
-    }
-    navigate("/belbin-result", { state: { answers } });
+  const getRoleName = (roleId) => {
+    return belbinRoles?.find((role) => role.id === roleId)?.name || "Без роли";
   };
-
-  const progress = (1 / 1) * 100; // Всего один вопрос
-  const current = question;
 
   return (
-    <Box sx={{ maxWidth: 800, mx: "auto", p: 3, fontFamily: "Arial" }}>
-      {/* <Typography variant="h5" gutterBottom sx={{ fontWeight: "bold", mb: 3 }}>
-        УЧАСТИЕ В СОВМЕСТНОМ ПРОЕКТЕ:
-      </Typography> */}
-
-      {/* Прогресс-бар */}
-      {/* <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-        <Box sx={{ width: "100%", mr: 1 }}>
-          <LinearProgress
-            variant="determinate"
-            value={progress}
-            sx={{ height: 8, borderRadius: 4 }}
-          />
-        </Box>
-        <Typography variant="body2" sx={{ minWidth: 50 }}>
-          Вопрос 1 из 1
-        </Typography>
-      </Box> */}
-
-      {/* Вопрос */}
-      {/* <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 3 }}>
-        1. {current.text}
-      </Typography> */}
-
-      {/* <Typography variant="subtitle1" sx={{ mb: 2, color: "#555" }}>
-        Распределите 10 баллов между вариантами ответов:
-      </Typography> */}
-
-      {/* Ответы */}
-      <Box sx={{ mb: 4 }}>
-        {current.answers.map((option, index) => (
-          <FormControl key={index} fullWidth sx={{ mb: 3 }}>
-            <Box sx={{ display: "flex", alignItems: "center" }}>
+    <Box sx={{ maxWidth: 800, mx: "auto", p: 2 }}>
+      {question.answers.map((option, index) => (
+        <FormControl key={index} fullWidth sx={{ mb: 3 }}>
+          <Grid container alignItems="center" spacing={2}>
+            <Grid item xs={9}>
               <BelbinSlider
                 index={index}
                 value={answers[index]}
@@ -87,42 +54,39 @@ export const BelbinQuestion = ({ question }) => {
                 limit={8}
                 max={10}
                 answerOption={option.text}
+                disabled={!isEditable}
               />
-            </Box>
-          </FormControl>
-        ))}
-      </Box>
-
-      {/* Баллы и ошибки */}
+            </Grid>
+            {option?.role_id && (
+              <Grid item xs={3}>
+                <Button
+                  variant="outlined"
+                  sx={{
+                    disabled: true,
+                    "&:hover": {
+                      backgroundColor: "transparent", // или любой другой цвет
+                      boxShadow: "none",
+                    },
+                  }}
+                >
+                  Роль: {getRoleName(option.role_id)}
+                </Button>
+              </Grid>
+            )}
+          </Grid>
+        </FormControl>
+      ))}
       <Typography
         variant="body1"
         sx={{
-          mb: 2,
+          mt: 2,
           fontWeight: "bold",
           color:
             totalPoints === 10 ? "green" : totalPoints > 10 ? "red" : "inherit",
         }}
       >
-        Распределено баллов: {totalPoints}/10
+        {isEditable && `Распределено баллов: ${totalPoints}/10`}
       </Typography>
-
-      {error && (
-        <Typography color="error" sx={{ mb: 2 }}>
-          {error}
-        </Typography>
-      )}
-
-      {/* Кнопки */}
-      {/* <Box sx={{ display: "flex", justifyContent: "space-between", mt: 4 }}>
-        <Button
-          variant="contained"
-          onClick={handleNext}
-          disabled={totalPoints !== 10}
-          sx={{ minWidth: 120 }}
-        >
-          Завершить тест
-        </Button>
-      </Box> */}
     </Box>
   );
 };

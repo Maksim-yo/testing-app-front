@@ -1,26 +1,28 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { Clerk } from "@clerk/clerk-react";
 
-const baseQuery = fetchBaseQuery({
-  baseUrl: "http://localhost:8000/",
+const baseQueryWithClerk = async (args, api, extraOptions) => {
+  const token = await window.Clerk?.session?.getToken({
+    template: "test_app", // Если не используешь шаблон — убери эту строку
+  });
 
-  prepareHeaders: async (headers) => {
-    // Получаем токен через глобальный объект Clerk
-    const token = await window.Clerk?.session?.getToken({
-      template: "test_app",
-    });
+  const rawBaseQuery = fetchBaseQuery({
+    baseUrl: "http://localhost:8000/",
+    credentials: "include",
+    prepareHeaders: (headers) => {
+      if (token) {
+        headers.set("Authorization", `Bearer ${token}`);
+      }
+      return headers;
+    },
+  });
 
-    if (token) {
-      headers.set("Authorization", `Bearer ${token}`);
-    }
-
-    return headers;
-  },
-});
+  return rawBaseQuery(args, api, extraOptions);
+};
 
 export const api = createApi({
   reducerPath: "api",
-  baseQuery: baseQuery,
+  baseQuery: baseQueryWithClerk,
   tagTypes: [
     "Employees",
     "Positions",
@@ -69,15 +71,23 @@ export const api = createApi({
     }),
     createEmployee: builder.mutation({
       query: (employee) => ({
-        url: "employees/",
+        url: "employees/local/",
+        method: "POST",
+        body: employee,
+      }),
+      invalidatesTags: ["Employees"],
+    }),
+    createClerkEmployees: builder.mutation({
+      query: (employee) => ({
+        url: "employees/clerk/",
         method: "POST",
         body: employee,
       }),
       invalidatesTags: ["Employees"],
     }),
     updateEmployee: builder.mutation({
-      query: (employee) => ({
-        url: `employees/${employee.id}/`,
+      query: ({ employee, employeeId }) => ({
+        url: `employees/${employeeId}/`,
         method: "PUT",
         body: employee,
       }),
@@ -123,9 +133,27 @@ export const api = createApi({
       invalidatesTags: ["Tests"],
     }),
     getAssignedTests: builder.query({
-      query: () => `/tests/assigned/`,
+      query: () => `/tests/assign/`,
       providesTags: ["Tests"],
     }),
+    setAssignmentsToTest: builder.mutation({
+      query: (assignments) => ({
+        url: `/tests/assign/`,
+        method: "POST",
+        body: { assignments },
+      }),
+      invalidatesTags: ["Tests"],
+    }),
+
+    deleteAssignment: builder.mutation({
+      query: (assignments) => ({
+        url: `/tests/unassign/`,
+        method: "POST",
+        body: { assignments },
+      }),
+      invalidatesTags: ["Tests"],
+    }),
+
     evaluateBelbinTest: builder.mutation({
       query: (id) => ({
         url: `belbin-tests/${id}/evaluate`,
@@ -230,7 +258,7 @@ export const api = createApi({
         url: `/test/start/${testId}`,
         method: "POST",
       }),
-      invalidatesTags: ["TestResult"],
+      invalidatesTags: ["Tests"],
     }),
 
     // Завершение теста
@@ -239,17 +267,17 @@ export const api = createApi({
         url: `/test/complete/${testId}`,
         method: "POST",
       }),
-      invalidatesTags: ["TestResult"],
+      invalidatesTags: ["Tests"],
     }),
 
     // Сохранение ответа
     saveTestAnswer: builder.mutation({
-      query: ({ testId, answer }) => ({
-        url: `/test/save_answer/${testId}`,
+      query: (answer) => ({
+        url: `/test/save_answer/`,
         method: "POST",
         body: answer,
       }),
-      invalidatesTags: ["TestResult"],
+      invalidatesTags: ["Tests"],
     }),
     createUser: builder.mutation({
       query: (data) => ({
@@ -265,11 +293,8 @@ export const api = createApi({
     updateProfile: builder.mutation({
       query: (data) => ({
         url: "/me/profile/",
-        method: "PUT",
+        method: "POST",
         body: data,
-        headers: {
-          "Content-Type": "application/json",
-        },
       }),
       invalidatesTags: ["Profile"],
     }),
@@ -283,6 +308,11 @@ export const api = createApi({
         method: "DELETE",
       }),
       invalidatesTags: ["Profile"],
+    }),
+
+    getTestResults: builder.query({
+      query: (id) => `tests/${id}/result`,
+      providesTags: ["Tests"],
     }),
   }),
 });
@@ -322,4 +352,8 @@ export const {
   useGetCurrentUserQuery,
   useUpdateProfileMutation,
   useDeleteCurrentUserMutation,
+  useCreateClerkEmployeesMutation,
+  useSetAssignmentsToTestMutation,
+  useDeleteAssignmentMutation,
+  useGetTestResultsQuery,
 } = api;

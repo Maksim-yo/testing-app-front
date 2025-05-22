@@ -12,7 +12,7 @@ import { useUpdateTestMutation, useCreateTestMutation } from "../../app/api";
 function parseRawTest(raw) {
   const questions = [];
   const belbin_questions = [];
-
+  console.log(raw);
   raw.questions.forEach((q, index) => {
     if (q.isBelbin) {
       // Создаем один вопрос
@@ -36,9 +36,10 @@ function parseRawTest(raw) {
     } else {
       questions.push({
         text: q.text,
-        question_type: "single_choice",
+        question_type: q.question_type,
         image: q.image,
         order: index,
+        points: q.points,
         answers: q.answers.map((a) => ({
           text: a.text,
           is_correct: a.is_correct,
@@ -59,12 +60,15 @@ function parseRawTest(raw) {
     belbin_questions,
     test_settings: raw.test_settings,
     status: raw.status || "draft",
+    time_limit_minutes: raw.time_limit_minutes,
   };
 }
 
 export const TestManager = () => {
   const [mode, setMode] = useState("list"); // 'list' или 'edit'
   const [currentTest, setCurrentTest] = useState(null);
+  const [errorOpen, setErrorOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewTest, setPreviewTest] = useState(null);
@@ -72,6 +76,7 @@ export const TestManager = () => {
   const [successOpen, setSuccessOpen] = useState(false);
   const [createTest] = useCreateTestMutation();
   const [updateTest] = useUpdateTestMutation();
+  const [triggerEditorBack, setTriggerEditorBack] = useState(false);
 
   const handleShowSuccess = () => {
     setSuccessOpen(true);
@@ -85,6 +90,17 @@ export const TestManager = () => {
     setCurrentTest({ id: "new", title: "", questions: [] });
     setMode("edit");
   };
+  const handleShowError = (message) => {
+    setErrorMessage(message);
+    setErrorOpen(true);
+  };
+
+  // Закрытие snackbar ошибки
+  const handleCloseError = (event, reason) => {
+    if (reason === "clickaway") return;
+    setErrorOpen(false);
+  };
+
   const handlePreview = (test) => {
     console.log(test);
     setPreviewTest(test);
@@ -99,15 +115,37 @@ export const TestManager = () => {
 
   const handleSave = async (updatedTest) => {
     setMode("list");
-    console.log(updatedTest);
-    const parsedTest = parseRawTest(updatedTest, updatedTest.positionId);
-    console.log(parsedTest);
-    if (updatedTest.id === "new") {
-      await createTest(parsedTest);
-    } else {
-      await updateTest(parsedTest);
+
+    try {
+      const parsedTest = parseRawTest(updatedTest);
+
+      const response =
+        updatedTest.id === "new"
+          ? await createTest(parsedTest)
+          : await updateTest(parsedTest);
+
+      // RTK Query mutation вернёт объект с error, если была ошибка
+      if (response.error) {
+        const detail = response.error.data?.detail;
+        let message = "Ошибка при сохранении теста.";
+
+        if (typeof detail === "string") {
+          message = detail;
+        } else if (detail?.message) {
+          message = detail.message;
+        } else if (detail?.error_message) {
+          message = detail.error_message;
+        }
+
+        handleShowError(message);
+        return;
+      }
+
+      handleShowSuccess();
+    } catch (err) {
+      console.error("Ошибка сохранения:", err);
+      handleShowError("Неизвестная ошибка при сохранении теста.");
     }
-    handleShowSuccess();
   };
 
   const handleCancel = () => {
@@ -118,24 +156,32 @@ export const TestManager = () => {
     setCurrentTest(test);
     setMode("stats");
   };
+  const handleBack = () => {
+    if (mode === "edit") {
+      setTriggerEditorBack(true);
+    } else {
+      setMode("list");
+    }
+  };
 
   const addQuestion = () => {};
   return (
     <Box sx={{ width: "100%" }}>
       {mode !== "list" && (
-        <BackButton onBack={() => setMode("list")} label="К списку тестов" />
+        <BackButton onBack={handleBack} label="К списку тестов" />
       )}
 
       <Snackbar
-        open={successOpen}
-        autoHideDuration={3000}
-        onClose={handleCloseSuccess}
+        open={errorOpen}
+        autoHideDuration={4000}
+        onClose={handleCloseError}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert onClose={handleCloseSuccess} severity="success" variant="filled">
-          Тест успешно сохранён!
+        <Alert onClose={handleCloseError} severity="error" variant="filled">
+          {errorMessage}
         </Alert>
       </Snackbar>
+
       {mode === "list" && (
         <TestList
           onCreate={handleCreate}
@@ -151,6 +197,8 @@ export const TestManager = () => {
           onCancel={handleCancel}
           onPreview={handlePreview}
           saveSettings={updateSettings}
+          triggerBack={triggerEditorBack}
+          resetTriggerBack={() => setTriggerEditorBack(false)}
         />
       )}
       {mode === "stats" && <TestStatsPage test={currentTest} />}

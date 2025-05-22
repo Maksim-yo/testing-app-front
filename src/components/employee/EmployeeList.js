@@ -29,7 +29,14 @@ import { generateAccountAsync } from "../../slices/employeeThunk";
 import AccountDetailsModal from "../AccountDetailsModal";
 import SettingsIcon from "@mui/icons-material/Settings";
 import { EmployeeSettings } from "./EmployeeSettings";
-import { useDeleteEmployeeMutation } from "../../app/api";
+import {
+  useDeleteEmployeeMutation,
+  useCreateClerkEmployeesMutation,
+} from "../../app/api";
+import GenerateAccountsDialog from "./GenerateAccountsDialog";
+import GenerateAccountsResultDialog from "./GenerateAccountsResultDialog";
+import DeleteEmployeeDialog from "./DeleteEmployeeDialog";
+
 const EmployeesList = ({
   employees,
   positions,
@@ -38,7 +45,6 @@ const EmployeesList = ({
   onDeleteEmployee,
 }) => {
   const dispatch = useDispatch();
-
   const [openForm, setOpenForm] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [accountModalOpen, setAccountModalOpen] = useState(false);
@@ -49,6 +55,11 @@ const EmployeesList = ({
   const [employeeSettings, setEmployeeSettings] = useState({
     mode: "manual",
   });
+  const [openGenerateDialog, setOpenGenerateDialog] = useState(false);
+  const [openResultDialog, setOpenResultDialog] = useState(false);
+  const [generatedAccounts, setGeneratedAccounts] = useState([]);
+  const [createClerkEmployees, { isLoading: isGenerating }] =
+    useCreateClerkEmployeesMutation();
   const [error, setError] = useState(null);
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -58,20 +69,6 @@ const EmployeesList = ({
   const [deleteEmployee, { isLoading: isDeleting }] =
     useDeleteEmployeeMutation();
 
-  const handleGenerateAccount = async (employeeId) => {
-    try {
-      const resultAction = await dispatch(generateAccountAsync(employeeId));
-
-      if (generateAccountAsync.fulfilled.match(resultAction)) {
-        const account = resultAction.payload;
-        const employee = employees.find((e) => e.id === employeeId);
-        setSelectedAccount({ account, employee });
-        setAccountModalOpen(true);
-      }
-    } catch (error) {
-      console.error("Ошибка при генерации аккаунта:", error);
-    }
-  };
   const handleEmployeeSettings = (selectedMode) => {
     setEmployeeSettings({ ...employeeSettings, mode: selectedMode });
   };
@@ -107,14 +104,63 @@ const EmployeesList = ({
       message: message,
     });
   };
+  const handleGenerate = async (data) => {
+    try {
+      const result = await createClerkEmployees({ employees: data }).unwrap();
+
+      // Обработка частичных ошибок
+      if (result.errors.length > 0) {
+        const allErrors = result.errors
+          .map((err) => {
+            const user = data[err.index];
+            return `${user.last_name} ${user.first_name}: ${err.error}`;
+          })
+          .join("\n");
+
+        setSnackbar({
+          open: true,
+          message: `Некоторые аккаунты не были созданы:\n${allErrors}`,
+        });
+      }
+
+      if (result.results.length > 0) {
+        console.log(result);
+        setGeneratedAccounts(result.results);
+        setOpenResultDialog(true);
+      }
+    } catch (err) {
+      console.error("Ошибка создания аккаунтов:", err);
+
+      let message = "Ошибка при создании аккаунтов";
+
+      if (err?.data?.detail) {
+        const detail = err.data.detail;
+
+        if (typeof detail === "string") {
+          message = detail;
+        } else if (Array.isArray(detail)) {
+          message = detail.map((e) => e.msg).join(", ");
+        } else if (typeof detail === "object") {
+          message = JSON.stringify(detail);
+        }
+      }
+
+      setSnackbar({
+        open: true,
+        message,
+      });
+    }
+  };
 
   const handleDelete = async () => {
+    console.log(deleteEmployeeId);
+    if (!deleteEmployeeId) return;
     await deleteEmployee(deleteEmployeeId);
     setOpenDeleteDialog(false);
   };
-  const handleDeleteDialog = (clerk_id) => {
+  const handleDeleteDialog = (employee_id) => {
     // TODO: здесь вызывается API для удаления аккаунта
-    setDeleteEmployeeId(clerk_id);
+    setDeleteEmployeeId(employee_id);
     setOpenDeleteDialog(true);
   };
   return (
@@ -148,9 +194,17 @@ const EmployeesList = ({
       <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
         <Typography variant="h6">Список сотрудников</Typography>
         <Box>
-          <IconButton onClick={() => setEmployeeSettingsOpen(true)}>
+          {/* <IconButton onClick={() => setEmployeeSettingsOpen(true)}>
             <SettingsIcon />
-          </IconButton>
+          </IconButton> */}
+          <Button
+            variant="outlined"
+            startIcon={<Key />}
+            sx={{ mr: 2, ml: 2 }}
+            onClick={() => setOpenGenerateDialog(true)}
+          >
+            Сгенерировать аккаунты
+          </Button>
           <Button
             variant="contained"
             startIcon={<Add />}
@@ -187,7 +241,10 @@ const EmployeesList = ({
                 const is_created = employee?.clerk_id?.startsWith("user_")
                   ? true
                   : false;
-
+                const is_inv = employee?.clerk_id?.startsWith("inv_")
+                  ? true
+                  : false;
+                const is_clerk = employee?.clerk_id ? true : false;
                 const position = positions.find(
                   (p) => p.id === employee.position_id
                 );
@@ -206,15 +263,23 @@ const EmployeesList = ({
                     <TableCell>{employee?.email || "-"}</TableCell>
                     <TableCell>{employee.phone || "-"}</TableCell>
                     <TableCell>
-                      {is_created ? (
+                      {is_created && (
                         <Chip
                           label="Аккаунт создан"
                           color="success"
                           size="small"
                         />
-                      ) : (
+                      )}
+                      {is_inv && (
                         <Chip
                           label="Аккаунт не подтвержден"
+                          color="warning"
+                          size="small"
+                        />
+                      )}
+                      {!is_clerk && (
+                        <Chip
+                          label="Аккаунт не создан"
                           color="warning"
                           size="small"
                         />
@@ -227,7 +292,7 @@ const EmployeesList = ({
                         </IconButton>
                       )}
                       <IconButton
-                        onClick={() => handleDeleteDialog(employee.clerk_id)}
+                        onClick={() => handleDeleteDialog(employee.id)}
                       >
                         <Delete color="error" />
                       </IconButton>
@@ -265,7 +330,29 @@ const EmployeesList = ({
           </Box>
         )}
       </TableContainer>
+      <GenerateAccountsDialog
+        open={openGenerateDialog}
+        onClose={() => setOpenGenerateDialog(false)}
+        employees={employees}
+        onGenerate={handleGenerate}
+        positions={positions}
+        isGenerating={isGenerating} // передаём загрузку
+      />
 
+      {/* Диалог показа результатов */}
+      <GenerateAccountsResultDialog
+        open={openResultDialog}
+        onClose={() => setOpenResultDialog(false)}
+        results={generatedAccounts}
+      />
+
+      {/* Диалог удаления сотрудника */}
+      <DeleteEmployeeDialog
+        open={openDeleteDialog}
+        onClose={() => setOpenDeleteDialog(false)}
+        onConfirm={handleDelete}
+        isDeleting={isDeleting}
+      />
       <EmployeeForm
         open={openForm}
         onClose={handleCloseForm}
@@ -274,30 +361,6 @@ const EmployeesList = ({
         settings={employeeSettings}
         showSnackbar={showSnackbar}
       />
-      <Dialog
-        open={openDeleteDialog}
-        onClose={() => setOpenDeleteDialog(false)}
-      >
-        <DialogTitle>Удаление аккаунта</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Вы уверены, что хотите удалить аккаунт? Это действие необратимо.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDeleteDialog(false)}>Отмена</Button>
-          <Button
-            color="error"
-            onClick={handleDelete}
-            disabled={isDeleting}
-            startIcon={
-              isDeleting ? <CircularProgress size={20} color="inherit" /> : null
-            }
-          >
-            {isDeleting ? "Удаление..." : "Удалить"}
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 };

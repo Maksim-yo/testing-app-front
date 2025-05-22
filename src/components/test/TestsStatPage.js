@@ -9,45 +9,209 @@ import {
   Divider,
   Button,
   IconButton,
+  CircularProgress,
 } from "@mui/material";
 import TestPreview from "./TestPreview";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"; // Для стрелки
+import { useGetTestResultsQuery } from "../../app/api";
+import UserResultsPage from "./UserResultsPage";
+
+const sampleResults = [
+  {
+    id: 25,
+    test_id: 22,
+    employee_id: 49,
+    is_completed: true,
+    completed_at: "2025-05-20T10:34:28.909807Z",
+    started_at: "2025-05-20T10:24:20.720986",
+    score: 6,
+    max_score: 7,
+    percent: 85.71428571428571,
+    employee: {
+      last_name: "Иван",
+      first_name: "Васильев534",
+      middle_name: null,
+      birth_date: null,
+      phone: "+7 (000) 000-00-00",
+      email: "lyzlov026@gmail.com",
+      position_id: 8,
+      hire_date: null,
+      is_admin: false,
+      clerk_id: "user_2xAuBSxuPZTPpGzxitKojJQfGRJ",
+      id: 49,
+      photo_url: null,
+      belbin_results: [],
+    },
+  },
+  {
+    id: 25,
+    test_id: 22,
+    employee_id: 49,
+    is_completed: true,
+    completed_at: "2025-05-20T10:34:28.909807Z",
+    started_at: "2025-05-20T10:24:20.720986",
+    score: 6,
+    max_score: 7,
+    percent: 85.71428571428571,
+    employee: {
+      last_name: "Иван",
+      first_name: "Васильев534",
+      middle_name: null,
+      birth_date: null,
+      phone: "+7 (000) 000-00-00",
+      email: "lyzlov026@gmail.com",
+      position_id: 8,
+      hire_date: null,
+      is_admin: false,
+      clerk_id: "user_2xAuBSxuPZTPpGzxitKojJQfGRJ",
+      id: 49,
+      photo_url: null,
+      belbin_results: [],
+    },
+  },
+  {
+    id: 25,
+    test_id: 22,
+    employee_id: 49,
+    is_completed: true,
+    completed_at: "2025-05-20T10:34:28.909807Z",
+    started_at: "2025-05-20T10:24:20.720986",
+    score: 6,
+    max_score: 7,
+    percent: 85.71428571428571,
+    employee: {
+      last_name: "Иван",
+      first_name: "Васильев534",
+      middle_name: null,
+      birth_date: null,
+      phone: "+7 (000) 000-00-00",
+      email: "lyzlov026@gmail.com",
+      position_id: 8,
+      hire_date: null,
+      is_admin: false,
+      clerk_id: "user_2xAuBSxuPZTPpGzxitKojJQfGRJ",
+      id: 49,
+      photo_url: null,
+      belbin_results: [],
+    },
+  },
+  {
+    id: 25,
+    test_id: 22,
+    employee_id: 49,
+    is_completed: true,
+    completed_at: "2025-05-20T10:34:28.909807Z",
+    started_at: "2025-05-20T10:24:20.720986",
+    score: 6,
+    max_score: 7,
+    percent: 85.71428571428571,
+    employee: {
+      last_name: "Иван",
+      first_name: "Васильев534",
+      middle_name: null,
+      birth_date: null,
+      phone: "+7 (000) 000-00-00",
+      email: "lyzlov026@gmail.com",
+      position_id: 8,
+      hire_date: null,
+      is_admin: false,
+      clerk_id: "user_2xAuBSxuPZTPpGzxitKojJQfGRJ",
+      id: 49,
+      photo_url: null,
+      belbin_results: [],
+    },
+  },
+  {
+    id: 25,
+    test_id: 22,
+    employee_id: 49,
+    is_completed: true,
+    completed_at: "2025-05-20T10:34:28.909807Z",
+    started_at: "2025-05-20T10:24:20.720986",
+    score: 6,
+    max_score: 7,
+    percent: 85.71428571428571,
+    employee: {
+      last_name: "Иван",
+      first_name: "Васильев534",
+      middle_name: null,
+      birth_date: null,
+      phone: "+7 (000) 000-00-00",
+      email: "lyzlov026@gmail.com",
+      position_id: 8,
+      hire_date: null,
+      is_admin: false,
+      clerk_id: "user_2xAuBSxuPZTPpGzxitKojJQfGRJ",
+      id: 49,
+      photo_url: null,
+      belbin_results: [],
+    },
+  },
+  {
+    id: 25,
+    test_id: 22,
+    employee_id: 49,
+    is_completed: true,
+    completed_at: "2025-05-20T10:34:28.909807Z",
+    started_at: "2025-05-20T10:24:20.720986",
+    score: 6,
+    max_score: 7,
+    percent: 85.71428571428571,
+    employee: {
+      last_name: "Иван",
+      first_name: "Васильев534",
+      middle_name: null,
+      birth_date: null,
+      phone: "+7 (000) 000-00-00",
+      email: "lyzlov026@gmail.com",
+      position_id: 8,
+      hire_date: null,
+      is_admin: false,
+      clerk_id: "user_2xAuBSxuPZTPpGzxitKojJQfGRJ",
+      id: 49,
+      photo_url: null,
+      belbin_results: [],
+    },
+  },
+];
 
 const TestStatsPage = ({ test }) => {
+  console.log(test);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-
+  const { data: testResults = [], isLoading: isTestResultsLoading } =
+    useGetTestResultsQuery(test.id);
+  const users = [
+    {
+      last_name: "Иван",
+      first_name: "Васильев534",
+      id: 49,
+    },
+  ];
   const handleTogglePreview = () => {
     setIsPreviewOpen((prev) => !prev); // Переключаем видимость
   };
+  const userMap = React.useMemo(() => {
+    const map = new Map();
+    users.forEach((u) => map.set(u.id, u));
+    return map;
+  }, [users]);
 
   return (
     <Box>
-      <Box sx={{ p: 3 }}>
+      <Box sx={{}}>
         <Typography variant="h4" gutterBottom>
           Статистика по тесту: {test.title}
         </Typography>
-        <Typography>Описание: {test.description}</Typography>
         <Typography>Всего вопросов: {test.questions.length}</Typography>
-        <Typography sx={{ my: 2 }}>
-          Кол-во назначений: {test.assignedTo?.length}
+        <Typography sx={{}}>
+          Кол-во назначений: {test.assigned_to?.length}
         </Typography>
-        <Paper elevation={3} sx={{ p: 2 }}>
-          <Typography variant="h6">Результаты прохождения</Typography>
-          <List>
-            {(test.results || []).map((res) => (
-              <React.Fragment key={res.userId}>
-                <ListItem>
-                  <ListItemText
-                    primary={`${res.name} — ${res.score} баллов`}
-                    secondary={`Завершено за ${res.duration} сек.`}
-                  />
-                </ListItem>
-                <Divider />
-              </React.Fragment>
-            ))}
-          </List>
-        </Paper>
-        <Box sx={{ mt: 4 }}>
+        <UserResultsPage
+          results={testResults}
+          isLoading={isTestResultsLoading}
+        />
+
+        <Box sx={{}}>
           <Button
             variant=""
             onClick={handleTogglePreview}

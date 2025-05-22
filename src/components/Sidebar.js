@@ -73,7 +73,7 @@ const Sidebar = () => {
           <ListItemIcon>
             <LogoutIcon />
           </ListItemIcon>
-          <ListItemText primary="Sign Out" />
+          <ListItemText primary="Выйти" />
         </ListItemButton>
       </List>
     </Drawer>

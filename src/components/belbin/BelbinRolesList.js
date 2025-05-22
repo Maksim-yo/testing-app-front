@@ -11,6 +11,7 @@ import {
   TableRow,
   IconButton,
   Typography,
+  Alert,
 } from "@mui/material";
 import { Add, Edit, Delete, Preview } from "@mui/icons-material";
 const BelbinRolesList = ({
@@ -25,14 +26,6 @@ const BelbinRolesList = ({
       <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
         <Typography variant="h6">Роли Белбина</Typography>
         <Box>
-          <Button
-            variant="outlined"
-            startIcon={<Preview />}
-            sx={{ mr: 1 }}
-            onClick={onPreviewTest}
-          >
-            Предпросмотр теста
-          </Button>
           <Button variant="contained" startIcon={<Add />} onClick={onAddRole}>
             Добавить роль
           </Button>

@@ -23,6 +23,8 @@ import {
   useCreateEmployeeMutation,
   useUpdateEmployeeMutation,
 } from "../../app/api";
+import InputMask from "react-input-mask";
+import dayjs from "dayjs";
 
 const isEqual = (a, b) => {
   return JSON.stringify(a) === JSON.stringify(b);
@@ -39,8 +41,8 @@ const EmployeeForm = ({
     last_name: "",
     first_name: "",
     middle_name: "",
-    birth_nate: null,
-    phone: "",
+    birth_date: null,
+    phone: null,
     email: "",
     position_id: "",
     hire_date: null,
@@ -64,21 +66,62 @@ const EmployeeForm = ({
   const isInvite = settings.mode === "invite";
 
   const handleSave = async (employeeData) => {
+    const formData = new FormData();
+    const phone = employee.phone?.trim() || "";
+
+    // Проверка: либо пусто, либо строго соответствует маске
+    const phoneRegex = /^\+7 \(\d{3}\) \d{3}-\d{2}-\d{2}$/;
+    const isPhoneValid = phone === "" || phoneRegex.test(phone);
+
+    if (!isPhoneValid) {
+      showSnackbar("Телефон должен быть полностью заполнен или пустым");
+      return;
+    }
+    for (const [key, value] of Object.entries(employeeData)) {
+      if (value !== null && value !== undefined && key !== "photo") {
+        if (key === "birth_date" || key === "hire_date") {
+          const date = new Date(value);
+          const isoDate = date.toISOString().split("T")[0];
+          formData.append(key, isoDate);
+        } else {
+          formData.append(key, value);
+        }
+      }
+    }
+
+    if (employeeData?.photo && employeeData?.photo !== initialData?.photo) {
+      formData.append("photo", employeeData.photo);
+    }
+
     try {
       const result = initialData
-        ? await updateEmployee({ ...initialData, ...employeeData })
-        : await createEmployee(employeeData);
+        ? await updateEmployee({
+            employee: formData,
+            employeeId: employeeData.id,
+          })
+        : await createEmployee(formData);
 
+      // Проверяем, есть ли ошибка в ответе
       if (result.error) {
-        const errorMessage =
-          result.error?.data?.detail?.message || "Неизвестная ошибка";
-        console.log(result.error?.data?.detail?.error_message);
+        // Варианты где может лежать сообщение об ошибке
+        const errorDetail = result.error.data?.detail;
+        let errorMessage = "Неизвестная ошибка";
+
+        if (typeof errorDetail === "string") {
+          errorMessage = errorDetail;
+        } else if (errorDetail?.message) {
+          errorMessage = errorDetail.message;
+        } else if (errorDetail?.error_message) {
+          errorMessage = errorDetail.error_message;
+        }
+
         throw new Error(`Ошибка сервера: ${errorMessage}`);
       }
-      onClose();
+
+      handleClose();
     } catch (error) {
       console.error("Ошибка при сохранении данных сотрудника:", error);
-      showSnackbar(error.message);
+      showSnackbar(error.message || "Ошибка при сохранении данных сотрудника");
     }
   };
 
@@ -129,7 +172,7 @@ const EmployeeForm = ({
       reader.onloadend = () => {
         setPreview(reader.result);
         const base64 = reader.result.split(",")[1]; // убрать data:image/jpeg;base64,
-        setEmployee((prev) => ({ ...prev, photo: base64 }));
+        setEmployee((prev) => ({ ...prev, photo: file }));
       };
       reader.readAsDataURL(file);
     }
@@ -142,9 +185,6 @@ const EmployeeForm = ({
 
   const handleSubmit = async () => {
     await handleSave(employee);
-    resetForm();
-
-    onClose();
   };
   const isFormValid = () => {
     return (
@@ -206,7 +246,8 @@ const EmployeeForm = ({
                 <DatePicker
                   label="Дата рождения"
                   value={employee.birth_date || null}
-                  onChange={(date) => handleDateChange("birthDate", date)}
+                  maxDate={dayjs()} // Ограничение: не позже сегодняшнего дня
+                  onChange={(date) => handleDateChange("birth_date", date)}
                   renderInput={(params) => <TextField {...params} fullWidth />}
                 />
               </LocalizationProvider>
@@ -218,14 +259,27 @@ const EmployeeForm = ({
           </Typography>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Телефон"
-                name="phone"
-                value={employee.phone}
-                onChange={handleChange}
-                placeholder="+7 (___) ___-__-__"
-              />
+              <InputMask
+                mask="+7 (999) 999-99-99"
+                value={employee.phone || ""}
+                onChange={(e) =>
+                  setEmployee((prev) => ({
+                    ...prev,
+                    phone: e.target.value,
+                  }))
+                }
+                // disabled={isProcessing}
+              >
+                {(inputProps) => (
+                  <TextField
+                    {...inputProps}
+                    fullWidth
+                    label="Телефон"
+                    name="phone"
+                    placeholder="+7 (___) ___-__-__"
+                  />
+                )}
+              </InputMask>
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
@@ -266,14 +320,15 @@ const EmployeeForm = ({
                 <DatePicker
                   label="Дата приема"
                   value={employee.hire_date || null}
-                  onChange={(date) => handleDateChange("hireDate", date)}
+                  maxDate={dayjs()} // Ограничение: не позже сегодняшнего дня
+                  onChange={(date) => handleDateChange("hire_date", date)}
                   renderInput={(params) => <TextField {...params} fullWidth />}
                 />
               </LocalizationProvider>
             </Grid>
           </Grid>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
+            {/* <Grid item xs={12} sm={6}>
               <TextField
                 select
                 fullWidth
@@ -287,7 +342,7 @@ const EmployeeForm = ({
                 <MenuItem value={false}>Пользователь</MenuItem>
               </TextField>
               <Grid />
-            </Grid>
+            </Grid> */}
           </Grid>
           <Box sx={{ mt: 3, display: "flex", alignItems: "center" }}>
             <Avatar

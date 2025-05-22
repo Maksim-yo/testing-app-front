@@ -1,15 +1,8 @@
 import React from "react";
 import { Box, Button, Typography, Paper } from "@mui/material";
 import { useSelector } from "react-redux";
-import { useGetBelbinPositionsQuery } from "../../app/api";
 
-export const BelbinPositionList = ({ onEdit, onDelete }) => {
-  const {
-    data: positions = [],
-    isLoading: isLoadingRoles,
-    error: errorRoles,
-  } = useGetBelbinPositionsQuery();
-
+export const BelbinPositionList = ({ positions, onEdit, onDelete }) => {
   return (
     <>
       {positions.length === 0 ? (
