@@ -4,7 +4,7 @@ module.exports = function (app) {
   app.use(
     "/api",
     createProxyMiddleware({
-      target: process.env.REACT_APP_API_PROXY || "http://localhost:8000", // Значение из .env
+      target: process.env.REACT_APP_API_URL || "http://localhost:8000", // Значение из .env
       changeOrigin: true,
     })
   );
