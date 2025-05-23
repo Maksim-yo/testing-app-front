@@ -1,5 +1,18 @@
 import React, { useState } from "react";
-import { Box, Button, TextField, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  TextField,
+  Typography,
+  CircularProgress,
+} from "@mui/material";
+import {
+  useGetBelbinRolesQuery,
+  useDeleteBelbinRoleMutation,
+  useUpdateBelbinRoleMutation,
+  useCreateBelbinRoleMutation,
+} from "../../app/api";
+import { useDispatch, useSelector } from "react-redux";
 
 const BelbinRoleEditor = ({ initialRole, onSave, onCancel }) => {
   const [name, setName] = useState(initialRole?.name || "");
@@ -7,10 +20,23 @@ const BelbinRoleEditor = ({ initialRole, onSave, onCancel }) => {
     initialRole?.description || ""
   );
   const isFormValid = name.trim() !== "";
-
-  const handleSubmit = (e) => {
+  const [updateBelbinRole, { isLoading: isUpdating }] =
+    useUpdateBelbinRoleMutation();
+  const [createBelbinRole, { isLoading: isCreating }] =
+    useCreateBelbinRoleMutation();
+  const isLoading = isCreating || isUpdating;
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSave({ ...initialRole, name, description });
+    await handleSave({ ...initialRole, name, description });
+    onSave();
+  };
+
+  const handleSave = async (updatedRole) => {
+    if (updatedRole.id === "new") {
+      await createBelbinRole(updatedRole);
+    } else {
+      await updateBelbinRole(updatedRole);
+    }
   };
 
   return (
@@ -45,8 +71,15 @@ const BelbinRoleEditor = ({ initialRole, onSave, onCancel }) => {
         <Button variant="outlined" onClick={onCancel}>
           Отмена
         </Button>
-        <Button variant="contained" type="submit" disabled={!isFormValid}>
-          Сохранить
+        <Button
+          variant="contained"
+          type="submit"
+          disabled={!isFormValid || isLoading}
+          startIcon={
+            isLoading ? <CircularProgress size={20} color="inherit" /> : null
+          }
+        >
+          {isLoading ? "Сохранение..." : "Сохранить"}
         </Button>
       </Box>
     </Box>

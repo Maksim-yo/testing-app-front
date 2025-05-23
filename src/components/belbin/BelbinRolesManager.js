@@ -30,8 +30,6 @@ export const BelbinRolesManager = ({ setError }) => {
     error: errorRoles,
   } = useGetBelbinRolesQuery();
   const [deleteBelbinRole] = useDeleteBelbinRoleMutation();
-  const [updateBelbinRole] = useUpdateBelbinRoleMutation();
-  const [createBelbinRole] = useCreateBelbinRoleMutation();
   const handleCreate = () => {
     dispatch(createRole());
   };
@@ -40,13 +38,8 @@ export const BelbinRolesManager = ({ setError }) => {
     dispatch(editRole(role));
   };
 
-  const handleSave = async (updatedRole) => {
+  const handleSave =  () => {
     dispatch(setMode("list"));
-    if (updatedRole.id === "new") {
-      await createBelbinRole(updatedRole);
-    } else {
-      await updateBelbinRole(updatedRole);
-    }
   };
 
   const handleDelete = async (roleId) => {
