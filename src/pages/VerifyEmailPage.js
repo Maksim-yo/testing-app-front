@@ -98,7 +98,15 @@ const VerifyEmailPage = () => {
         });
         return;
       }
-
+      if (err.status === "FETCH_ERROR") {
+        setSnackbar({
+          open: true,
+          message:
+            "Не удалось соединиться с сервером. Проверьте подключение к интернету.",
+          severity: "error",
+        });
+        return;
+      }
       // Ошибки Clerk
       const clerkError = err.errors?.[0];
       if (clerkError?.code === "verification_expired") {
