@@ -21,8 +21,10 @@ import {
   KeyboardArrowUp as KeyboardArrowUpIcon,
   Refresh as RefreshIcon,
 } from "@mui/icons-material";
-
+import ResetTestDialog from "./ResetTestDialog";
 import { useGetTestResultsQuery } from "../../app/api";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import IconButton from "@mui/material/IconButton";
 
 // Функция для форматирования времени прохождения теста
 function formatTimeSpent(startedAt, completedAt) {
@@ -49,64 +51,11 @@ function formatDate(dateString) {
   const date = new Date(dateString);
   return date.toLocaleDateString("ru-RU");
 }
-const sampleResults = [
-  {
-    id: 1,
-    name: "Иван Иванов",
-    email: "ivan@example.com",
-    position: "Менеджер проектов",
-    regularScore: 85,
-    belbinRoles: [
-      { role: "Реализатор", score: 7 },
-      { role: "Координатор", score: 5 },
-      { role: "Мотиватор", score: 6 },
-    ],
-    positionBelbinRoles: [
-      { role: "Реализатор", recommended: 8 },
-      { role: "Координатор", recommended: 6 },
-      { role: "Мотиватор", recommended: 7 },
-      { role: "Аналитик", recommended: 5 },
-    ],
-    timeSpent: "12 мин 30 с",
-    date: "2025-05-18",
-  },
-  {
-    id: 2,
-    name: "Мария Петрова",
-    email: "maria@example.com",
-    position: "Аналитик",
-    regularScore: 92,
-    belbinRoles: [],
-    positionBelbinRoles: [
-      { role: "Аналитик", recommended: 8 },
-      { role: "Исследователь", recommended: 7 },
-    ],
-    timeSpent: "10 мин 15 с",
-    date: "2025-05-17",
-  },
-  {
-    id: 3,
-    name: "Алексей Смирнов",
-    email: "aleksey@example.com",
-    position: "Разработчик",
-    regularScore: 78,
-    belbinRoles: [
-      { role: "Исследователь", score: 8 },
-      { role: "Контролер", score: 4 },
-    ],
-    positionBelbinRoles: [
-      { role: "Исследователь", recommended: 7 },
-      { role: "Контролер", recommended: 5 },
-      { role: "Реализатор", recommended: 6 },
-    ],
-    timeSpent: "15 мин 5 с",
-    date: "2025-05-16",
-  },
-];
 
 // Компонент строки результата с раскрывающимся блоком
 function ResultRow({ result }) {
   const [open, setOpen] = useState(false);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
 
   const handleRowClick = () => {
     setOpen((prev) => !prev);
@@ -148,7 +97,7 @@ function ResultRow({ result }) {
       </TableRow>
 
       <TableRow>
-        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={7}>
+        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={8}>
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box margin={2}>
               <Typography variant="subtitle1" gutterBottom>
@@ -265,9 +214,27 @@ function ResultRow({ result }) {
                 </Typography>
               )}
             </Box>
+            <TableCell align="right">
+              <IconButton
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setResetDialogOpen(true);
+                }}
+                size="small"
+                color="error"
+              >
+                <RestartAltIcon />
+              </IconButton>
+            </TableCell>
           </Collapse>
         </TableCell>
       </TableRow>
+      <ResetTestDialog
+        open={resetDialogOpen}
+        onClose={() => setResetDialogOpen(false)}
+        testId={test.id}
+        employeeId={employee.id}
+      />
     </>
   );
 }

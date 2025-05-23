@@ -46,13 +46,17 @@ const VerifyEmailPage = () => {
     setLoading(true);
     try {
       const result = await signUp.attemptEmailAddressVerification({ code });
+
       if (pendingUser) {
+        // Пытаемся создать пользователя в базе
         await createUser({
           id: result.createdUserId,
           email: pendingUser.email,
           is_admin: pendingUser.isAdmin,
-        });
+        }).unwrap(); // важно: unwrap, чтобы выбросить ошибку при неуспехе
       }
+
+      // Если создание в БД успешно — активируем сессию
       await setActive({ session: result.createdSessionId });
 
       setSnackbar({
@@ -62,9 +66,9 @@ const VerifyEmailPage = () => {
       });
       setTimeout(() => navigate("/"), 1500);
     } catch (err) {
-      console.log("Full error:", err); // Для отладки
+      console.log("Full error:", err);
 
-      // 1. Сначала проверяем текст ошибки в err.message
+      // Слишком много попыток
       if (err.message?.includes("Too many failed attempts")) {
         setSnackbar({
           open: true,
@@ -72,8 +76,11 @@ const VerifyEmailPage = () => {
           severity: "error",
         });
         setCodeExpired(true);
-        return; // Выходим, чтобы не проверять другие условия
-      } else if (err.message.includes("Incorrect code")) {
+        return;
+      }
+
+      // Неверный код
+      if (err.message?.includes("Incorrect code")) {
         setSnackbar({
           open: true,
           severity: "error",
@@ -81,7 +88,18 @@ const VerifyEmailPage = () => {
         });
         return;
       }
-      // 2. Затем проверяем стандартные ошибки Clerk
+
+      // Ошибка при создании пользователя в БД
+      if (err.status === 400 || err.status === 500) {
+        setSnackbar({
+          open: true,
+          message: "Ошибка при создании пользователя. Попробуйте позже.",
+          severity: "error",
+        });
+        return;
+      }
+
+      // Ошибки Clerk
       const clerkError = err.errors?.[0];
       if (clerkError?.code === "verification_expired") {
         setCodeExpired(true);
@@ -90,12 +108,12 @@ const VerifyEmailPage = () => {
           message: "Код истёк. Пожалуйста, запросите новый.",
           severity: "error",
         });
-      } else if (clerkError?.code === "form_code_incorrect") {
       } else {
         setSnackbar({
           open: true,
           message:
-            clerkError?.longMessage || "Неверный код. Попробуйте ещё раз",
+            clerkError?.longMessage ||
+            "Ошибка подтверждения. Попробуйте ещё раз.",
           severity: "error",
         });
       }

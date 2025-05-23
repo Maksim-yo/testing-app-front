@@ -180,7 +180,7 @@ export const api = createApi({
 
     updateBelbinRole: builder.mutation({
       query: (role) => ({
-        url: `belbin-roles/${role.id}/`,
+        url: `belbin-roles/`,
         method: "PUT",
         body: role,
       }),
@@ -289,6 +289,14 @@ export const api = createApi({
       }),
       invalidatesTags: ["Profile"],
     }),
+
+    resetTestForEmployee: builder.mutation({
+      query: ({ testId, employeeId }) => ({
+        url: `/tests/${testId}/employees/${employeeId}/reset`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Tests"],
+    }),
     updateProfile: builder.mutation({
       query: (data) => ({
         url: "/me/profile/",
@@ -317,6 +325,7 @@ export const api = createApi({
 });
 
 export const {
+  useResetTestForEmployeeMutation,
   useGetPositionsQuery,
   useCreatePositionMutation,
   useGetEmployeesQuery,
