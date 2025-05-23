@@ -62,7 +62,7 @@ import { useUpdateTestStatusMutation } from "../../app/api";
 const getTestStatus = (status) => {
   // if (status === "completed") return { label: "Завершён", color: "success" };
   if (status === "expired") return { label: "Истёк срок", color: "error" };
-  if (status === "draft") return { label: "Черновик", color: "warning" };
+  if (status === "draft") return { label: "Неактивен", color: "default" };
 
   // if (status === "in_progress")
   //   return { label: "В процессе", color: "warning" };
@@ -170,18 +170,6 @@ export const TestList = ({ onCreate, onEdit, onPreview, onClick }) => {
     setAssignDialogOpen(false);
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "active":
-        return "success";
-      case "draft":
-        return "warning";
-      case "archive":
-        return "default";
-      default:
-        return "primary";
-    }
-  };
   const handleEmployeeSelect = (employeeId) => {
     setSelectedEmployees((prevSelected) => {
       if (prevSelected.includes(employeeId)) {

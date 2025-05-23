@@ -26,21 +26,27 @@ import { useGetTestResultsQuery } from "../../app/api";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import IconButton from "@mui/material/IconButton";
 
-// Функция для форматирования времени прохождения теста
-function formatTimeSpent(startedAt, completedAt) {
+function formatTimeSpent(startedAt, completedAt, time_limit_minutes) {
   if (!startedAt || !completedAt) return "Н/Д";
 
-  // Приводим обе даты к формату с Z, если его нет
+  // Добавляем Z, если нет, чтобы Date корректно распознал время в UTC
   const normalize = (dateStr) =>
     dateStr.endsWith("Z") ? dateStr : `${dateStr}Z`;
 
   const start = new Date(normalize(startedAt));
   const end = new Date(normalize(completedAt));
+  const maxDurationMs = time_limit_minutes * 60 * 1000;
 
-  const diff = (end - start) / 1000; // разница в секундах
+  let diffMs = end - start;
 
-  const minutes = Math.floor(diff / 60);
-  const seconds = Math.floor(diff % 60);
+  // Ограничиваем diff максимумом лимита
+  if (diffMs > maxDurationMs) {
+    diffMs = maxDurationMs;
+  }
+
+  const diffSec = Math.floor(diffMs / 1000);
+  const minutes = Math.floor(diffSec / 60);
+  const seconds = diffSec % 60;
 
   return `${minutes} мин ${seconds} с`;
 }
@@ -89,11 +95,39 @@ function ResultRow({ result }) {
         <TableCell>{fullName}</TableCell>
         <TableCell>{employee.email}</TableCell>
         <TableCell>{employee.position?.title}</TableCell>
-        <TableCell align="right">{result.percent.toFixed(2)}%</TableCell>
         <TableCell align="right">
-          {formatTimeSpent(result.started_at, result.completed_at)}
+          <Chip
+            label={`${result.percent.toFixed(2)}%`}
+            color={
+              result.percent >= 80
+                ? "success"
+                : result.percent >= 50
+                ? "warning"
+                : "error"
+            }
+            size="small"
+          />
+        </TableCell>
+        <TableCell align="right">
+          {formatTimeSpent(
+            result.started_at,
+            result.completed_at,
+            result.time_limit_minutes
+          )}
         </TableCell>
         <TableCell align="right">{formatDate(result.completed_at)}</TableCell>
+        <TableCell align="right">
+          <IconButton
+            onClick={(e) => {
+              e.stopPropagation();
+              setResetDialogOpen(true);
+            }}
+            size="small"
+            color="error"
+          >
+            <RestartAltIcon />
+          </IconButton>
+        </TableCell>
       </TableRow>
 
       <TableRow>
@@ -214,25 +248,13 @@ function ResultRow({ result }) {
                 </Typography>
               )}
             </Box>
-            <TableCell align="right">
-              <IconButton
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setResetDialogOpen(true);
-                }}
-                size="small"
-                color="error"
-              >
-                <RestartAltIcon />
-              </IconButton>
-            </TableCell>
           </Collapse>
         </TableCell>
       </TableRow>
       <ResetTestDialog
         open={resetDialogOpen}
         onClose={() => setResetDialogOpen(false)}
-        testId={test.id}
+        testId={result.test_id}
         employeeId={employee.id}
       />
     </>

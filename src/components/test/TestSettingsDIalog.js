@@ -34,6 +34,7 @@ export const TestSettingsDilog = ({
       belbin_block: belbinBlocks,
       belbin_questions_in_block: belbinOptionsPerBlock,
       has_time_limit: hasTimeLimit,
+      id: initialTest.id,
     });
     setSettingsOpen(false);
   };

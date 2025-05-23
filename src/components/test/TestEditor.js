@@ -131,12 +131,17 @@ export const TestEditor = ({
     dateStr ? new Date(dateStr).toISOString().replace(".000", "") : null;
 
   // Настройки теста
-  const [testSettings, setTestSettings] = useState({
+  const defaultSettings = {
     min_questions: 4,
     belbin_block: 7,
     belbin_questions_in_block: 4,
-    ...(initialTest.test_settings || {}),
-    has_time_limit: initialTest.time_limit_minutes !== null,
+    id: initialTest?.id || null,
+    has_time_limit: initialTest?.time_limit_minutes !== null,
+  };
+
+  const [testSettings, setTestSettings] = useState({
+    ...defaultSettings,
+    ...(initialTest?.test_settings || {}),
   });
   const handleShowCancelDialogue = () => {
     console.log("Test changed");
@@ -165,49 +170,46 @@ export const TestEditor = ({
   }, []);
 
   // Валидация и сохранение
-  const validateAndSave = useCallback(
-    (status = "active") => {
-      const errors = validateTest(
-        {
-          ...initialTest,
-          title,
-          image: testImage,
-          questions,
-          deadline,
-          time_limit_minutes: timeLimit,
-        },
-        testSettings
-      );
-
-      if (errors.length > 0) {
-        setValidationErrors(errors);
-        setDialogOpen(true);
-        return false;
-      }
-
-      onSave({
+  const validateAndSave = useCallback(() => {
+    const errors = validateTest(
+      {
         ...initialTest,
         title,
         image: testImage,
         questions,
-        end_date: deadline?.toISOString(),
-        test_settings: testSettings,
+        deadline,
         time_limit_minutes: timeLimit,
-        status,
-      });
-      return true;
-    },
-    [
-      initialTest,
+      },
+      testSettings
+    );
+
+    if (errors.length > 0) {
+      setValidationErrors(errors);
+      setDialogOpen(true);
+      return false;
+    }
+    console.log(testSettings);
+    onSave({
+      ...initialTest,
       title,
-      testImage,
+      image: testImage,
       questions,
-      deadline,
-      timeLimit,
-      testSettings,
-      onSave,
-    ]
-  );
+      end_date: deadline?.toISOString(),
+      test_settings: testSettings,
+      time_limit_minutes: timeLimit,
+      status: initialTest.status,
+    });
+    return true;
+  }, [
+    initialTest,
+    title,
+    testImage,
+    questions,
+    deadline,
+    timeLimit,
+    testSettings,
+    onSave,
+  ]);
 
   // Обработчики действий
   const handleSaveDraft = useCallback(() => {

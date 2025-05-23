@@ -51,8 +51,8 @@ const TestPreview = ({ test }) => {
         />
 
         <Chip
-          label={test.is_active ? "Активный" : "Неактивный"}
-          color={test.is_active ? "success" : "default"}
+          label={test.status === "active" ? "Активный" : "Неактивный"}
+          color={test.status === "active" ? "success" : "default"}
         />
       </Box>
 

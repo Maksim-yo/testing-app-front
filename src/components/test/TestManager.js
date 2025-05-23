@@ -21,13 +21,17 @@ function parseRawTest(raw) {
         block_number: index + 1,
         order: index,
         answers: [], // массив вариантов ответа
+        id: q.id,
+        test_id: raw.id,
       };
 
       q.answers.forEach((a) => {
         if (a.role && a.role.id) {
           belbin_question.answers.push({
+            id: a.id,
             text: a.text,
             role_id: a.role.id,
+            question_id: q.id,
           });
         }
       });
@@ -35,13 +39,17 @@ function parseRawTest(raw) {
       belbin_questions.push(belbin_question);
     } else {
       questions.push({
+        test_id: raw.id,
+        id: q.id,
         text: q.text,
         question_type: q.question_type,
         image: q.image,
         order: index,
         points: q.points,
         answers: q.answers.map((a) => ({
+          id: a.id,
           text: a.text,
+          question_id: q.id,
           is_correct: a.is_correct,
           image: a.image,
         })),

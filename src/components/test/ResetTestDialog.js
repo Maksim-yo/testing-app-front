@@ -57,7 +57,7 @@ const ResetTestDialog = ({ open, onClose, testId, employeeId }) => {
       <DialogContent>
         <DialogContentText>
           Вы уверены, что хотите сбросить результаты этого теста? Все ответы
-          будут удалены.
+          пользователя будут удалены.
         </DialogContentText>
       </DialogContent>
       <DialogActions>

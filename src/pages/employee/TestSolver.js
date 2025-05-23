@@ -24,6 +24,19 @@ import { TestTimer } from "../../components/test/TestTimer";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 
+function isSameAnswer(question, body) {
+  const selectedIdsFromQuestion = question.answers
+    .filter((a) => a.is_user_answer)
+    .map((a) => a.id)
+    .sort(); // на случай если порядок разный
+
+  const bodyAnswerIds = [...(body.answer_ids || [])].sort();
+
+  return (
+    JSON.stringify(selectedIdsFromQuestion) === JSON.stringify(bodyAnswerIds)
+  );
+}
+
 const TestSolver = ({ test }) => {
   const navigate = useNavigate();
   const isCompleted = test.status === "completed";
@@ -64,9 +77,7 @@ const TestSolver = ({ test }) => {
   const [secondsLeft, setSecondsLeft] = useState(() =>
     Math.max(0, Math.floor((deadline.getTime() - Date.now()) / 1000))
   );
-  console.log("startedAtDate:", startedAtDate);
-  console.log("deadline:", deadline);
-  console.log("minutesLeft:", secondsLeft);
+
   const [isTimeUp, setIsTimeUp] = useState(false);
   useEffect(() => {
     if (secondsLeft <= 0) return;
@@ -131,7 +142,7 @@ const TestSolver = ({ test }) => {
         if (selected.length > 0) {
           initialAnswers[question.id] = selected;
         }
-      } else if (question.question_type === "text") {
+      } else if (question.question_type === "text_answer") {
         const textAnswer = question.answers?.[0]?.text;
         if (textAnswer) {
           initialAnswers[question.id] = textAnswer;
@@ -205,6 +216,8 @@ const TestSolver = ({ test }) => {
 
   const validateAnswer = () => {
     const value = answers[currentQuestion.id];
+    console.log(value);
+    console.log(answers);
 
     if (currentQuestion.type === "belbin") {
       const sum = (value || []).reduce((a, b) => a + b, 0);
@@ -259,7 +272,12 @@ const TestSolver = ({ test }) => {
       text_response,
       question_type: currentQuestion.type,
     };
+    // const curr
 
+    const alreadyAnswered = isSameAnswer(currentQuestion, body);
+    if (alreadyAnswered) {
+      return;
+    }
     await saveTestAnswer(body);
   };
   const handleNext = async () => {

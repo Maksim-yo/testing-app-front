@@ -20,6 +20,7 @@ import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import React, { useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { checkBackendAlive } from "../utils/checkBackendAlive";
 
 // внутри компонента
 
@@ -32,7 +33,12 @@ const SignUpPage = () => {
     setError,
     formState: { errors },
     watch,
-  } = useForm();
+  } = useForm({
+    defaultValues: {
+      isAdmin: true,
+    },
+  });
+
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -46,6 +52,18 @@ const SignUpPage = () => {
   const [searchParams] = useSearchParams();
 
   const onSubmit = async ({ email, password, confirmPassword, isAdmin }) => {
+    setIsLoading(true);
+    const backendAlive = await checkBackendAlive();
+
+    if (!backendAlive) {
+      setIsLoading(false);
+      setSnackbar({
+        open: true,
+        message: "Сервер недоступен. Попробуйте позже.",
+        severity: "error",
+      });
+      return;
+    }
     if (password !== confirmPassword) {
       setError("confirmPassword", {
         type: "manual",
@@ -56,7 +74,6 @@ const SignUpPage = () => {
 
     if (!isLoaded) return;
 
-    setIsLoading(true);
     try {
       const result = await signUp.create({
         emailAddress: email,
@@ -95,9 +112,18 @@ const SignUpPage = () => {
   return (
     <Container maxWidth="sm">
       <Paper elevation={3} sx={{ p: 4, mt: 8, borderRadius: 3 }}>
-        <Typography variant="h4" gutterBottom>
-          Регистрация
+        <Typography variant="h4" align="center" gutterBottom fontWeight="bold">
+          Система тестирования персонала
         </Typography>
+        <Typography
+          variant="h6"
+          align="center"
+          color="text.secondary"
+          gutterBottom
+        >
+          Оценка потенциала. Повышение эффективности.
+        </Typography>
+
         <form onSubmit={handleSubmit(onSubmit)}>
           {/* Email */}
           <TextField
@@ -191,12 +217,6 @@ const SignUpPage = () => {
             )}
           />
 
-          {/* Admin Checkbox */}
-          <FormControlLabel
-            control={<Checkbox {...register("isAdmin")} />}
-            label="Я администратор"
-          />
-
           {/* Submit Button */}
           <Button
             type="submit"
@@ -228,7 +248,7 @@ const SignUpPage = () => {
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
         <Alert
           onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}

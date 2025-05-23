@@ -172,7 +172,9 @@ export const api = createApi({
       query: (id) => `belbin-tests/${id}/results`,
       providesTags: ["BelbinTests"],
     }),
-
+    checkBackend: builder.query({
+      query: () => `/ping`,
+    }),
     getBelbinRoles: builder.query({
       query: (id) => `belbin-roles/`,
       providesTags: ["BelbinRoles"],
@@ -364,4 +366,5 @@ export const {
   useSetAssignmentsToTestMutation,
   useDeleteAssignmentMutation,
   useGetTestResultsQuery,
+  useCheckBackendQuery,
 } = api;

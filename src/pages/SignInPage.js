@@ -9,12 +9,15 @@ import {
   IconButton,
   Paper,
   Link,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import { useSignIn } from "@clerk/clerk-react";
 import { useForm } from "react-hook-form";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import React, { useState } from "react";
+import { checkBackendAlive } from "../utils/checkBackendAlive";
 
 const SignInPage = () => {
   const { isLoaded, signIn, setActive } = useSignIn();
@@ -27,11 +30,25 @@ const SignInPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
-
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
   const onSubmit = async ({ email, password }) => {
     if (!isLoaded) return;
 
     setIsLoading(true);
+    const backendAlive = await checkBackendAlive();
+    if (!backendAlive) {
+      setIsLoading(false);
+      setSnackbar({
+        open: true,
+        message: "Сервер недоступен. Попробуйте позже.",
+        severity: "error",
+      });
+      return;
+    }
     setErrorMessage(""); // Сброс ошибки перед отправкой запроса
 
     try {
@@ -57,9 +74,18 @@ const SignInPage = () => {
   return (
     <Container maxWidth="sm">
       <Paper elevation={3} sx={{ p: 4, mt: 8, borderRadius: 3 }}>
-        <Typography variant="h4" gutterBottom>
-          Вход в систему
+        <Typography variant="h4" align="center" gutterBottom fontWeight="bold">
+          Система тестирования персонала
         </Typography>
+        <Typography
+          variant="h6"
+          align="center"
+          color="text.secondary"
+          gutterBottom
+        >
+          Оценка потенциала. Повышение эффективности.
+        </Typography>
+
         <form onSubmit={handleSubmit(onSubmit)}>
           {/* Email */}
           <TextField
@@ -142,6 +168,20 @@ const SignInPage = () => {
           </Typography>
         </Box>
       </Paper>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };

@@ -11,6 +11,8 @@ import {
 } from "@mui/material";
 import { useSignIn } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
+import { checkBackendAlive } from "../utils/checkBackendAlive";
+import { BackupTableRounded } from "@mui/icons-material";
 
 const ResetPasswordPage = () => {
   const [email, setEmail] = useState("");
@@ -29,7 +31,21 @@ const ResetPasswordPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     setLoading(true);
+    const backendAlive = await checkBackendAlive();
+    if (!backendAlive) {
+      setLoading(false);
+      e.preventDefault();
+
+      setSnackbar({
+        open: true,
+        message: "Сервер недоступен. Попробуйте позже.",
+        severity: "error",
+      });
+      return;
+    }
+
     try {
       await signIn?.create({
         strategy: "reset_password_email_code",
