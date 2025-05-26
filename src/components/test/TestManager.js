@@ -115,6 +115,13 @@ export const TestManager = () => {
     setPreviewOpen(true);
   };
   const handleEdit = (test) => {
+    if (test.status !== "draft") {
+      setErrorMessage(
+        "Необходимо сменить статус теста на 'Неактивен' для редактирования"
+      );
+      setErrorOpen(true);
+      return;
+    }
     setCurrentTest(test);
     setMode("edit");
   };
@@ -183,9 +190,9 @@ export const TestManager = () => {
         open={errorOpen}
         autoHideDuration={4000}
         onClose={handleCloseError}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert onClose={handleCloseError} severity="error" variant="filled">
+        <Alert onClose={handleCloseError} severity="warning">
           {errorMessage}
         </Alert>
       </Snackbar>

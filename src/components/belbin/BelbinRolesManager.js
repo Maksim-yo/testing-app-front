@@ -1,79 +1,68 @@
 import React, { useEffect, useState } from "react";
+import { Box } from "@mui/material";
+import BelbinRolesList from "./BelbinRolesList";
+import BelbinRoleForm from "./BelbinRoleForm"; // <-- импорт новой формы
+import BelbinTestPreviewDialog from "./BelbinTestPreviewDialog";
 
-import { useDispatch, useSelector } from "react-redux";
-
-import { Box, Alert } from "@mui/material";
-import BelbinRolesList from "./BelbinRolesList"; // список ролей
-import BelbinRoleEditor from "./BelbinRoleEditor"; // форма редактирования одной роли
-import BelbinTestPreviewDialog from "./BelbinTestPreviewDialog"; // просмотр теста
-import {
-  createRole,
-  editRole,
-  saveRole,
-  deleteRole,
-  setMode,
-  resetCurrentRole,
-} from "../../slices/roleSlice";
 import {
   useGetBelbinRolesQuery,
   useDeleteBelbinRoleMutation,
-  useUpdateBelbinRoleMutation,
-  useCreateBelbinRoleMutation,
 } from "../../app/api";
+
 export const BelbinRolesManager = ({ setError }) => {
-  const dispatch = useDispatch();
-  const { currentRole, mode } = useSelector((state) => state.roles);
-  const [previewOpen, setPreviewOpen] = React.useState(false);
-  const {
-    data: roles = [],
-    isLoading: isLoadingRoles,
-    error: errorRoles,
-  } = useGetBelbinRolesQuery();
+  const { data: roles = [], error: errorRoles } = useGetBelbinRolesQuery();
   const [deleteBelbinRole] = useDeleteBelbinRoleMutation();
-  const handleCreate = () => {
-    dispatch(createRole());
+
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingRole, setEditingRole] = useState(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  useEffect(() => {
+    if (errorRoles) setError(errorRoles);
+  }, [errorRoles, setError]);
+
+  const handleAddRole = () => {
+    setEditingRole(null); // Создаем новую роль
+    setFormOpen(true);
   };
 
-  const handleEdit = (role) => {
-    dispatch(editRole(role));
+  const handleEditRole = (role) => {
+    setEditingRole(role); // Редактируем существующую роль
+    setFormOpen(true);
   };
 
-  const handleSave =  () => {
-    dispatch(setMode("list"));
+  const handleDeleteRole = async (roleId) => {
+    try {
+      await deleteBelbinRole(roleId);
+    } catch (err) {
+      console.error("Ошибка при удалении роли:", err);
+    }
   };
 
-  const handleDelete = async (roleId) => {
-    await deleteBelbinRole(roleId);
-  };
-
-  const handleCancel = () => {
-    dispatch(setMode("list"));
-    dispatch(resetCurrentRole());
+  const handleCloseForm = () => {
+    setFormOpen(false);
+    setEditingRole(null);
   };
 
   const handlePreview = () => {
     setPreviewOpen(true);
   };
-  useEffect(() => {
-    if (errorRoles) setError(errorRoles);
-  });
+
   return (
     <Box sx={{ p: 3 }}>
-      {mode === "list" ? (
-        <BelbinRolesList
-          roles={roles}
-          onAddRole={handleCreate}
-          onEditRole={handleEdit}
-          onDeleteRole={handleDelete}
-          onPreviewTest={handlePreview}
-        />
-      ) : (
-        <BelbinRoleEditor
-          initialRole={currentRole}
-          onSave={handleSave}
-          onCancel={handleCancel}
-        />
-      )}
+      <BelbinRolesList
+        roles={roles}
+        onAddRole={handleAddRole}
+        onEditRole={handleEditRole}
+        onDeleteRole={handleDeleteRole}
+        onPreviewTest={handlePreview}
+      />
+      <BelbinRoleForm
+        open={formOpen}
+        onClose={handleCloseForm}
+        initialData={editingRole}
+        handleCloseForm={handleCloseForm}
+      />
       <BelbinTestPreviewDialog
         open={previewOpen}
         onClose={() => setPreviewOpen(false)}

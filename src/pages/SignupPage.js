@@ -123,7 +123,13 @@ const SignUpPage = () => {
         >
           Оценка потенциала. Повышение эффективности.
         </Typography>
-
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ mt: 1, mb: 2, px: 3, color: "#ec407a" }} // это примерно pink[400]
+        >
+          При регистрации будет создана учетная запись администратора.
+        </Typography>
         <form onSubmit={handleSubmit(onSubmit)}>
           {/* Email */}
           <TextField

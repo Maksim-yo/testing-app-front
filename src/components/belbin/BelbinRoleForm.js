@@ -6,57 +6,149 @@ import {
   DialogActions,
   TextField,
   Button,
+  CircularProgress,
+  Box,
+  Snackbar,
+  Alert,
 } from "@mui/material";
+import {
+  useCreateBelbinRoleMutation,
+  useUpdateBelbinRoleMutation,
+} from "../../app/api";
 
-const BelbinRoleForm = ({ open, onClose, onSave, initialData }) => {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+const initialFormState = {
+  name: "",
+  description: "",
+};
+
+const BelbinRoleForm = ({ open, onClose, initialData, handleCloseForm }) => {
+  const [role, setRole] = useState(initialFormState);
+
+  const [
+    createRole,
+    { isLoading: isCreating, isError: isCreateError, error: createError },
+  ] = useCreateBelbinRoleMutation();
+  const [
+    updateRole,
+    { isLoading: isUpdating, isError: isUpdateError, error: updateError },
+  ] = useUpdateBelbinRoleMutation();
+  console.log(initialData);
+  const isLoading = isCreating || isUpdating;
+  const isFormValid = role.name.trim() !== "";
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success", // 'error' | 'success' | 'info' | 'warning'
+  });
+
+  const handleSnackbarClose = () => {
+    setSnackbar((prev) => ({ ...prev, open: false }));
+  };
 
   useEffect(() => {
-    if (initialData) {
-      setTitle(initialData.title);
-      setDescription(initialData.description);
-    } else {
-      setTitle("");
-      setDescription("");
+    if (open) {
+      setRole(initialData || initialFormState);
     }
-  }, [initialData]);
+  }, [open, initialData]);
 
-  const handleSubmit = () => {
-    if (title.trim() && description.trim()) {
-      onSave({ title, description });
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setRole((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async () => {
+    const trimmedData = {
+      name: (role.name || "").trim(),
+      description: (role.description || "").trim(),
+    };
+    try {
+      if (initialData?.id) {
+        await updateRole({ id: initialData.id, ...trimmedData }).unwrap();
+      } else {
+        await createRole(trimmedData).unwrap();
+      }
+
+      setTimeout(() => {}, 1000); // 1 секунда — достаточно, чтобы Snackbar успел отобразиться
+
+      handleCloseForm?.();
+      onClose();
+      setRole(initialFormState);
+    } catch (error) {
+      console.error("Ошибка при сохранении роли:", error);
+
+      // Попытка извлечь сообщение
+      const detail =
+        error?.data?.detail ||
+        (Array.isArray(error?.data) && error.data[0]?.msg) || // если список ошибок от Pydantic
+        "Не удалось сохранить роль";
+
+      const isDuplicate =
+        detail.includes("уже существует") || detail.includes("already exists");
+
+      setSnackbar({
+        open: true,
+        message: isDuplicate ? "Роль с таким именем уже существует" : detail,
+        severity: "error",
+      });
     }
   };
 
+  const handleCancel = () => {
+    setRole(initialFormState);
+    onClose();
+  };
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={handleCancel} maxWidth="sm" fullWidth>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleSnackbarClose}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
       <DialogTitle>
-        {initialData ? "Редактировать роль" : "Добавить роль"}
+        {initialData ? "Редактировать роль" : "Новая роль"}
       </DialogTitle>
       <DialogContent>
-        <TextField
-          autoFocus
-          margin="dense"
-          label="Название роли"
-          fullWidth
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-        <TextField
-          margin="dense"
-          label="Описание роли"
-          fullWidth
-          multiline
-          minRows={4}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          sx={{ mt: 2 }}
-        />
+        <Box component="form" sx={{ mt: 2 }}>
+          <TextField
+            fullWidth
+            label="Название роли"
+            name="name"
+            value={role.name}
+            onChange={handleChange}
+            margin="normal"
+            required
+          />
+          <TextField
+            fullWidth
+            multiline
+            rows={4}
+            label="Описание"
+            name="description"
+            value={role.description}
+            onChange={handleChange}
+            margin="normal"
+          />
+        </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Отмена</Button>
-        <Button onClick={handleSubmit} variant="contained">
-          Сохранить
+        <Button onClick={handleCancel}>Отменить</Button>
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
+          disabled={isLoading || !isFormValid}
+          startIcon={isLoading ? <CircularProgress size={20} /> : null}
+        >
+          {isLoading ? "Сохранение..." : "Сохранить"}
         </Button>
       </DialogActions>
     </Dialog>

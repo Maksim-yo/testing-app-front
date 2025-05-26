@@ -40,7 +40,7 @@ function formatTimeSpent(startedAt, completedAt, time_limit_minutes) {
   let diffMs = end - start;
 
   // Ограничиваем diff максимумом лимита
-  if (diffMs > maxDurationMs) {
+  if (time_limit_minutes && diffMs > maxDurationMs) {
     diffMs = maxDurationMs;
   }
 
@@ -295,9 +295,34 @@ export default function UserResultsPage({ results, isLoading }) {
           <CircularProgress />
         </Box>
       ) : results.length === 0 ? (
-        <Typography variant="h6" align="center" color="text.secondary" mt={10}>
-          Нет данных для отображения
-        </Typography>
+        <Paper
+          elevation={3}
+          sx={{
+            width: "100%",
+          }}
+        >
+          <Box
+            sx={{
+              height: 400,
+              display: "flex",
+              justifyContent: "center", // горизонтальное выравнивание
+              alignItems: "center", // вертикальное выравнивание
+              p: 1,
+            }}
+          >
+            <Typography
+              color="text.secondary"
+              align="center"
+              variant="h6"
+              sx={{
+                color: "text.disabled",
+                fontStyle: "italic",
+              }}
+            >
+              Нет данных для отображения
+            </Typography>
+          </Box>
+        </Paper>
       ) : (
         <TableContainer component={Paper} elevation={3}>
           <Table>

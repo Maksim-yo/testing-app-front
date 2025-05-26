@@ -140,10 +140,10 @@ const PositionsList = ({ positions }) => {
         open={openDeleteDialog}
         onClose={() => setOpenDeleteDialog(false)}
       >
-        <DialogTitle>Удаление аккаунта</DialogTitle>
+        <DialogTitle>Удаление должности</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Вы уверены, что хотите удалить аккаунт? Это действие необратимо.
+            Вы уверены, что хотите удалить должность? Это действие необратимо.
           </DialogContentText>
         </DialogContent>
         <DialogActions>

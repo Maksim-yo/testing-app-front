@@ -7,6 +7,7 @@ import {
   resetCurrentPosition,
   setMode,
 } from "../../slices/positionsBelbinSlice";
+import { useState } from "react";
 import BeblinPositionEditor from "./BelbinPositionEditor";
 import { BelbinPositionList } from "./BelbinPositionList";
 import { useDeleteBelbinPositionsMutation } from "../../app/api";
@@ -18,6 +19,7 @@ export const BelbinPositionManager = ({ setError }) => {
     isLoading: isLoadingRoles,
     error: errorRoles,
   } = useGetBelbinPositionsQuery();
+  const [open, setOpen] = useState(false);
 
   const dispatch = useDispatch();
   const currentPosition = useSelector(
@@ -27,11 +29,13 @@ export const BelbinPositionManager = ({ setError }) => {
   const [deleteBelbinPosition] = useDeleteBelbinPositionsMutation();
 
   const handleAddPosition = () => {
+    setOpen(true);
     dispatch(setCurrentPosition({ id: "new", title: "", coefficients: {} }));
     dispatch(setMode("edit"));
   };
 
   const handleEditPosition = (position) => {
+    setOpen(true);
     dispatch(setCurrentPosition(position));
     dispatch(setMode("edit"));
   };
@@ -53,6 +57,7 @@ export const BelbinPositionManager = ({ setError }) => {
         <BeblinPositionEditor
           position={currentPosition}
           onCancel={handleCancelEdit}
+          open={open}
         />
       ) : (
         <>

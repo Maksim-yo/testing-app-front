@@ -259,29 +259,6 @@ const EmployeeForm = ({
           </Typography>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
-              <InputMask
-                mask="+7 (999) 999-99-99"
-                value={employee.phone || ""}
-                onChange={(e) =>
-                  setEmployee((prev) => ({
-                    ...prev,
-                    phone: e.target.value,
-                  }))
-                }
-                // disabled={isProcessing}
-              >
-                {(inputProps) => (
-                  <TextField
-                    {...inputProps}
-                    fullWidth
-                    label="Телефон"
-                    name="phone"
-                    placeholder="+7 (___) ___-__-__"
-                  />
-                )}
-              </InputMask>
-            </Grid>
-            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="Email"

@@ -39,8 +39,12 @@ export const BelbinManager = () => {
     <Box sx={{ p: 3 }}>
       {isEditing ? (
         <>
-          {roleMode === "edit" && <BelbinRolesManager />}
-          {positionMode === "edit" && <BelbinPositionManager />}
+          {roleMode === "edit" && (
+            <BelbinRolesManager setError={setRolesError} />
+          )}
+          {positionMode === "edit" && (
+            <BelbinPositionManager setError={setPositionError} />
+          )}
         </>
       ) : (
         <>

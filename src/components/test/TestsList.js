@@ -75,8 +75,10 @@ export const TestList = ({ onCreate, onEdit, onPreview, onClick }) => {
   const [selectedTest, setSelectedTest] = useState(null);
   const [testToDelete, setTestToDelete] = useState(null);
   const [selectedEmployees, setSelectedEmployees] = useState([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [dueDate, setDueDate] = useState("");
-  const [updateTestStatus] = useUpdateTestStatusMutation();
+  const [updateTestStatus, { isLoading: isLoadingStatus }] =
+    useUpdateTestStatusMutation();
   const [deleteTest] = useDeleteTestMutation();
   const navigate = useNavigate();
   const {
@@ -84,7 +86,16 @@ export const TestList = ({ onCreate, onEdit, onPreview, onClick }) => {
     isLoading: isLoadingTests,
     error: errorTests,
   } = useGetTestsQuery();
-
+  const handleConfirm = async () => {
+    try {
+      await updateTestStatus({ testId: selectedTest.id, status: "draft" });
+      setDialogOpen(false);
+      setSelectedTest(null);
+    } catch (e) {
+      console.error("Ошибка при смене статуса", e);
+      setSelectedTest(null);
+    }
+  };
   const statusOrder = {
     not_started: 0,
     active: 1,
@@ -123,8 +134,13 @@ export const TestList = ({ onCreate, onEdit, onPreview, onClick }) => {
     onPreview(test);
   };
 
-  const handleChangeStatus = async (test_id, status) => {
-    await updateTestStatus({ testId: test_id, status });
+  const handleChangeStatus = async (test, status) => {
+    if (status === "draft") {
+      setSelectedTest(test);
+      setDialogOpen(true);
+    } else {
+      await updateTestStatus({ testId: test.id, status: status });
+    }
   };
 
   const confirmDelete = (id) => {
@@ -318,7 +334,7 @@ export const TestList = ({ onCreate, onEdit, onPreview, onClick }) => {
                       {test.status !== "expired" && (
                         <TestStatus
                           onChange={(status) =>
-                            handleChangeStatus(test.id, status)
+                            handleChangeStatus(test, status)
                           }
                           status={test.status}
                         />
@@ -399,6 +415,38 @@ export const TestList = ({ onCreate, onEdit, onPreview, onClick }) => {
           <Button onClick={() => setDeleteDialogOpen(false)}>Отмена</Button>
           <Button onClick={handleDeleteTest} color="error" variant="contained">
             Удалить
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={dialogOpen}
+        onClose={() => !isLoading && setDialogOpen(false)}
+      >
+        <DialogTitle>Подтверждение</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Вы уверены, что хотите изменить статус теста? Это{" "}
+            <strong>может удалить результаты</strong> пользователей.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setSelectedTest(null);
+              setDialogOpen(false);
+            }}
+            disabled={isLoadingStatus}
+          >
+            Отмена
+          </Button>
+          <Button
+            onClick={handleConfirm}
+            color="error"
+            variant="contained"
+            disabled={isLoadingStatus}
+            startIcon={isLoadingStatus && <CircularProgress size={16} />}
+          >
+            {isLoadingStatus ? "Подтверждение..." : "Подтвердить"}
           </Button>
         </DialogActions>
       </Dialog>

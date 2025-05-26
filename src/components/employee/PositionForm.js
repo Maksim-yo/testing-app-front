@@ -12,7 +12,8 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
-  Paper,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import {
   useDeletePositionMutation,
@@ -29,6 +30,7 @@ const PositionForm = ({ open, onClose, initialData, handleCloseForm }) => {
     hasSystemAccess: false,
   };
   const [position, setPosition] = useState(initialFormState);
+
   const [
     createPosition,
     { isLoading: isCreating, isError: isCreatingError, error: createError },
@@ -37,13 +39,14 @@ const PositionForm = ({ open, onClose, initialData, handleCloseForm }) => {
     updatePosition,
     { isLoading: isUpdating, isError: isUpdatingError, error: updateError },
   ] = useUpdatePositionMutation();
+
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "error", // error, success, warning, info
+  });
+
   const isLoading = isUpdating || isCreating;
-  const accessLevels = [
-    { value: "basic", label: "Базовый" },
-    { value: "medium", label: "Средний" },
-    { value: "high", label: "Высокий" },
-    { value: "admin", label: "Администратор" },
-  ];
   const isFormValid = position.title.trim() !== "";
 
   const handleChange = (e) => {
@@ -54,15 +57,42 @@ const PositionForm = ({ open, onClose, initialData, handleCloseForm }) => {
     }));
   };
 
-  const handleSave = async (positionData) => {
-    if (initialData) {
-      console.log({ ...initialData, ...positionData });
-      await updatePosition({ ...initialData, ...positionData });
-    } else {
-      await createPosition(positionData);
-    }
-    handleCloseForm();
+  const handleSnackbarClose = () => {
+    setSnackbar((prev) => ({ ...prev, open: false }));
   };
+
+  const handleSave = async (positionData) => {
+    try {
+      if (initialData) {
+        await updatePosition({ ...initialData, ...positionData }).unwrap();
+      } else {
+        await createPosition(positionData).unwrap();
+      }
+
+      setTimeout(() => {}, 1000); // 1 секунда — достаточно, чтобы Snackbar успел отобразиться
+      handleCloseForm();
+    } catch (error) {
+      console.error("Ошибка при сохранении должности:", error);
+
+      // Попытка извлечь сообщение
+      const detail =
+        error?.data?.detail ||
+        (Array.isArray(error?.data) && error.data[0]?.msg) || // если список ошибок от Pydantic
+        "Не удалось сохранить должность";
+
+      const isDuplicate =
+        detail.includes("уже существует") || detail.includes("already exists");
+
+      setSnackbar({
+        open: true,
+        message: isDuplicate
+          ? "Должность с таким именем уже существует"
+          : detail,
+        severity: "error",
+      });
+    }
+  };
+
   useEffect(() => {
     if (open) {
       setPosition(initialData || initialFormState);
@@ -83,51 +113,73 @@ const PositionForm = ({ open, onClose, initialData, handleCloseForm }) => {
   const resetForm = () => {
     setPosition(initialFormState);
   };
+
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        {initialData ? "Редактировать должность" : "Новая должность"}
-      </DialogTitle>
-      <DialogContent>
-        <Box component="form" sx={{ mt: 2 }}>
-          <TextField
-            fullWidth
-            label="Название должности"
-            name="title"
-            value={position.title}
-            onChange={handleChange}
-            margin="normal"
-            required
-            // error={!isFormValid}
-            // helperText={!isFormValid ? "Обязательное поле" : ""}
-          />
-          <TextField
-            fullWidth
-            label="Описание"
-            name="description"
-            value={position.description}
-            onChange={handleChange}
-            margin="normal"
-            multiline
-            rows={4}
-          />
-        </Box>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Отменить</Button>
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          color="primary"
-          disabled={isLoading || !isFormValid}
-          startIcon={
-            isLoading ? <CircularProgress size={20} color="inherit" /> : null
-          }
+    <>
+      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {initialData ? "Редактировать должность" : "Новая должность"}
+        </DialogTitle>
+        <DialogContent>
+          <Box component="form" sx={{ mt: 2 }}>
+            <TextField
+              fullWidth
+              label="Название должности"
+              name="title"
+              value={position.title}
+              onChange={handleChange}
+              margin="normal"
+              required
+              // error={!isFormValid}
+              helperText={!isFormValid ? "Обязательное поле" : ""}
+              disabled={isLoading}
+            />
+            <TextField
+              fullWidth
+              label="Описание"
+              name="description"
+              value={position.description}
+              onChange={handleChange}
+              margin="normal"
+              multiline
+              rows={4}
+              disabled={isLoading}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose} disabled={isLoading}>
+            Отменить
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            color="primary"
+            disabled={isLoading || !isFormValid}
+            startIcon={
+              isLoading ? <CircularProgress size={20} color="inherit" /> : null
+            }
+          >
+            {isLoading ? "Сохранение..." : "Сохранить"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleSnackbarClose}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
         >
-          {isLoading ? "Сохранение..." : "Сохранить"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </>
   );
 };
 
