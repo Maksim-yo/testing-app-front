@@ -226,8 +226,7 @@ const BeblinPositionEditor = ({ position, open, onCancel }) => {
                   allowNegative={false}
                   decimalScale={0}
                   isAllowed={({ floatValue }) =>
-                    floatValue === undefined ||
-                    (floatValue >= 0 && floatValue <= 10)
+                    floatValue === undefined || floatValue >= 0
                   }
                   onValueChange={({ floatValue }) =>
                     handleScoreChange(req.role_id, floatValue)
