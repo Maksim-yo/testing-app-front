@@ -193,7 +193,7 @@ function ResultRow({ result }) {
               </Typography>
               {result?.belbin_results && result?.belbin_results?.length > 0 ? (
                 <Box display="flex" flexWrap="wrap" gap={1}>
-                  {/* {result?.belbin_results?.map((role) => (
+                  {result?.belbin_results?.map((role) => (
                     <Chip
                       key={role.role.id}
                       label={`${role.role?.name ?? role.role.id}: ${
@@ -202,7 +202,7 @@ function ResultRow({ result }) {
                       color="secondary"
                       size="medium"
                     />
-                  ))} */}
+                  ))}
                 </Box>
               ) : (
                 <Typography variant="body2" color="text.secondary">
