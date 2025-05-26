@@ -101,8 +101,19 @@ const SignUpPage = () => {
       // Переход на страницу подтверждения
       navigate("/verify-email", { state: { pendingUser: { email, isAdmin } } });
     } catch (err) {
-      const message = err.errors?.[0]?.message || "Ошибка регистрации";
-      setError("email", { type: "manual", message });
+      const clerkError = err?.errors?.[0];
+      const code = clerkError?.code;
+      const message = clerkError?.message || "Ошибка регистрации";
+
+      if (code === "form_identifier_exists") {
+        setError("email", {
+          type: "manual",
+          message: "Этот email уже зарегистрирован.",
+        });
+      } else {
+        setError("email", { type: "manual", message });
+      }
+
       setSnackbar({ open: true, message, severity: "error" });
     } finally {
       setIsLoading(false);
@@ -158,7 +169,7 @@ const SignUpPage = () => {
                 message: "Пароль должен быть не менее 8 символов",
               },
               pattern: {
-                value: /[A-Z]/,
+                value: /^(?=.*[A-Z])[A-Za-z0-9_!?.]+$/,
                 message: "Пароль должен содержать хотя бы одну заглавную букву",
               },
             }}

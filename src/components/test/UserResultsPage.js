@@ -97,9 +97,15 @@ function ResultRow({ result }) {
         <TableCell>{employee.position?.title}</TableCell>
         <TableCell align="right">
           <Chip
-            label={`${result.percent.toFixed(2)}%`}
+            label={
+              result?.percent !== null && result?.percent !== undefined
+                ? `${result.percent.toFixed(2)}%`
+                : "—"
+            }
             color={
-              result.percent >= 80
+              result?.percent === null || result?.percent === undefined
+                ? "default" // или другой цвет, например, grey
+                : result.percent >= 80
                 ? "success"
                 : result.percent >= 50
                 ? "warning"
@@ -153,9 +159,15 @@ function ResultRow({ result }) {
                     Процент выполнения:
                   </Typography>
                   <Chip
-                    label={`${result.percent.toFixed(2)}%`}
+                    label={
+                      result?.percent !== null && result?.percent !== undefined
+                        ? `${result.percent.toFixed(2)}%`
+                        : "—"
+                    }
                     color={
-                      result.percent >= 80
+                      result?.percent === null || result?.percent === undefined
+                        ? "default" // или другой цвет, например, grey
+                        : result.percent >= 80
                         ? "success"
                         : result.percent >= 50
                         ? "warning"
@@ -181,7 +193,7 @@ function ResultRow({ result }) {
               </Typography>
               {result?.belbin_results && result?.belbin_results?.length > 0 ? (
                 <Box display="flex" flexWrap="wrap" gap={1}>
-                  {result?.belbin_results?.map((role) => (
+                  {/* {result?.belbin_results?.map((role) => (
                     <Chip
                       key={role.role.id}
                       label={`${role.role?.name ?? role.role.id}: ${
@@ -190,7 +202,7 @@ function ResultRow({ result }) {
                       color="secondary"
                       size="medium"
                     />
-                  ))}
+                  ))} */}
                 </Box>
               ) : (
                 <Typography variant="body2" color="text.secondary">

@@ -17,6 +17,7 @@ import VerificationInput from "react-verification-input";
 import { ConstructionOutlined } from "@mui/icons-material";
 import { useCreateUserMutation } from "../app/api";
 import { useLocation } from "react-router-dom";
+import { useDeleteClerkUserMutation } from "../app/api";
 const VerifyEmailPage = () => {
   const { signUp, isLoaded } = useSignUp();
   const {
@@ -27,6 +28,7 @@ const VerifyEmailPage = () => {
   } = useForm();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [deleteClerkUser] = useDeleteClerkUserMutation();
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -40,22 +42,26 @@ const VerifyEmailPage = () => {
   const { setActive } = useClerk(); // Добавляем useClerk
 
   const { pendingUser } = state || {};
-
+  const { email } = state || {};
   const onSubmit = async ({ code }) => {
     if (!isLoaded) return;
     setLoading(true);
     try {
       const result = await signUp.attemptEmailAddressVerification({ code });
-
+      console.log(result.createdUserId);
       if (pendingUser) {
         // Пытаемся создать пользователя в базе
-        await createUser({
-          id: result.createdUserId,
-          email: pendingUser.email,
-          is_admin: pendingUser.isAdmin,
-        }).unwrap(); // важно: unwrap, чтобы выбросить ошибку при неуспехе
+        try {
+          await createUser({
+            clerk_id: result.createdUserId,
+            email: pendingUser.email,
+            is_admin: pendingUser.isAdmin,
+          }).unwrap(); // важно: unwrap, чтобы выбросить ошибку при неуспехе
+        } catch (err) {
+          await deleteClerkUser(result.createdUserId).unwrap();
+          throw err;
+        }
       }
-
       // Если создание в БД успешно — активируем сессию
       await setActive({ session: result.createdSessionId });
 
@@ -79,6 +85,19 @@ const VerifyEmailPage = () => {
         return;
       }
 
+      if (
+        err.message?.includes(
+          "Sign up unsuccessful due to failed security validations"
+        )
+      ) {
+        setSnackbar({
+          open: true,
+          message:
+            "Не удалось завершить регистрацию из-за ошибок безопасности. Обновите страницу и попробуйте снова.",
+          severity: "error",
+        });
+        return;
+      }
       // Неверный код
       if (err.message?.includes("Incorrect code")) {
         setSnackbar({
@@ -91,6 +110,17 @@ const VerifyEmailPage = () => {
 
       // Ошибка при создании пользователя в БД
       if (err.status === 400 || err.status === 500) {
+        const detailMessage = err?.data?.detail || "";
+
+        if (detailMessage.includes("email уже существует")) {
+          setSnackbar({
+            open: true,
+            message: "Пользователь с таким email уже существует.",
+            severity: "error",
+          });
+          return;
+        }
+
         setSnackbar({
           open: true,
           message: "Ошибка при создании пользователя. Попробуйте позже.",
@@ -109,6 +139,15 @@ const VerifyEmailPage = () => {
       }
       // Ошибки Clerk
       const clerkError = err.errors?.[0];
+      if (clerkError?.code === "session_exists") {
+        setSnackbar({
+          open: true,
+          message: "Вы уже вошли в систему.",
+          severity: "info",
+        });
+        setTimeout(() => navigate("/"), 1500);
+        return;
+      }
       if (clerkError?.code === "verification_expired") {
         setCodeExpired(true);
         setSnackbar({

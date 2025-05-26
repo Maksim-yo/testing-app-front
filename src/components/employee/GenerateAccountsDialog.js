@@ -198,7 +198,7 @@ const GenerateAccountsDialog = ({
             </Box>
           ) : (
             filteredEmployees.map((emp) => {
-              const photoUrl = getPhotoUrl?.(emp.photo);
+              const photoUrl = getPhotoUrl(emp.photo);
               const isSelected = !!selected[emp.id];
               const position = positions?.find((p) => p.id === emp.position_id);
               let is_created = false;

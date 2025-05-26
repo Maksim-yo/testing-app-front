@@ -135,6 +135,10 @@ export const api = createApi({
       query: () => `/tests/assign/`,
       providesTags: ["Tests"],
     }),
+    getAssignedTest: builder.query({
+      query: (testId) => `/tests/assign/${testId}`,
+      providesTags: ["Tests"],
+    }),
     setAssignmentsToTest: builder.mutation({
       query: (assignments) => ({
         url: `/tests/assign/`,
@@ -186,7 +190,7 @@ export const api = createApi({
         method: "PUT",
         body: role,
       }),
-      invalidatesTags: ["BelbinRoles"],
+      invalidatesTags: ["BelbinRoles", "Tests", "BelbinPositions"],
     }),
     deleteBelbinRole: builder.mutation({
       query: (id) => ({
@@ -291,7 +295,12 @@ export const api = createApi({
       }),
       invalidatesTags: ["Profile"],
     }),
-
+    deleteClerkUser: builder.mutation({
+      query: (clerk_id) => ({
+        url: `/clerk/delete/${clerk_id}`,
+        method: "DELETE",
+      }),
+    }),
     resetTestForEmployee: builder.mutation({
       query: ({ testId, employeeId }) => ({
         url: `/tests/${testId}/employees/${employeeId}/reset`,
@@ -367,4 +376,6 @@ export const {
   useDeleteAssignmentMutation,
   useGetTestResultsQuery,
   useCheckBackendQuery,
+  useDeleteClerkUserMutation,
+  useGetAssignedTestQuery,
 } = api;

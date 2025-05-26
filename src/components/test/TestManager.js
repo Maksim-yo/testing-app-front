@@ -14,7 +14,7 @@ function parseRawTest(raw) {
   const belbin_questions = [];
   console.log(raw);
   raw.questions.forEach((q, index) => {
-    if (q.isBelbin) {
+    if (q.question_type === "belbin") {
       // Создаем один вопрос
       const belbin_question = {
         text: q.text, // общий текст вопроса
@@ -26,11 +26,13 @@ function parseRawTest(raw) {
       };
 
       q.answers.forEach((a) => {
+        console.log(a);
         if (a.role && a.role.id) {
           belbin_question.answers.push({
             id: a.id,
             text: a.text,
             role_id: a.role.id,
+            role_name: a.role.name,
             question_id: q.id,
           });
         }
@@ -115,7 +117,7 @@ export const TestManager = () => {
     setPreviewOpen(true);
   };
   const handleEdit = (test) => {
-    if (test.status !== "draft") {
+    if (test.status === "active") {
       setErrorMessage(
         "Необходимо сменить статус теста на 'Неактивен' для редактирования"
       );

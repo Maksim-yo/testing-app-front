@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Box } from "@mui/material";
+import { Box, Snackbar, Alert } from "@mui/material";
 import BelbinRolesList from "./BelbinRolesList";
 import BelbinRoleForm from "./BelbinRoleForm"; // <-- импорт новой формы
 import BelbinTestPreviewDialog from "./BelbinTestPreviewDialog";
@@ -12,7 +12,11 @@ import {
 export const BelbinRolesManager = ({ setError }) => {
   const { data: roles = [], error: errorRoles } = useGetBelbinRolesQuery();
   const [deleteBelbinRole] = useDeleteBelbinRoleMutation();
-
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success", // 'error' | 'success' | 'info' | 'warning'
+  });
   const [formOpen, setFormOpen] = useState(false);
   const [editingRole, setEditingRole] = useState(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -33,9 +37,20 @@ export const BelbinRolesManager = ({ setError }) => {
 
   const handleDeleteRole = async (roleId) => {
     try {
-      await deleteBelbinRole(roleId);
-    } catch (err) {
-      console.error("Ошибка при удалении роли:", err);
+      await deleteBelbinRole(roleId).unwrap();
+    } catch (error) {
+      const detail =
+        error?.data?.detail ||
+        (Array.isArray(error?.data) && error.data[0]?.msg) || // если список ошибок от Pydantic
+        "Не удалось сохранить роль";
+      if (detail.includes("Cannot delete role with answers")) {
+        setSnackbar({
+          open: true,
+          message: "Невозможно удалить роль так как она используется в тестах",
+          severity: "error",
+        });
+      }
+      console.error("Ошибка при удалении роли:", error);
     }
   };
 
@@ -47,9 +62,25 @@ export const BelbinRolesManager = ({ setError }) => {
   const handlePreview = () => {
     setPreviewOpen(true);
   };
-
+  const handleSnackbarClose = () => {
+    setSnackbar((prev) => ({ ...prev, open: false }));
+  };
   return (
     <Box sx={{ p: 3 }}>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleSnackbarClose}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
       <BelbinRolesList
         roles={roles}
         onAddRole={handleAddRole}

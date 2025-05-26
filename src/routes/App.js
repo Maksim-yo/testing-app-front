@@ -30,6 +30,7 @@ import VerifyAgainPage from "./VerifyAgainPage";
 import ResetPasswordPage from "../pages/ResetPasswordPage";
 import ResetPasswordVerification from "../pages/ResetPasswordVerification";
 import UserResultsPage from "../components/test/UserResultsPage";
+import TestSolver from "../pages/employee/TestSolver";
 export default function App() {
   return (
     <Routes>

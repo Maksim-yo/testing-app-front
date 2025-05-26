@@ -19,6 +19,8 @@ import {
   Image as ImageIcon,
   Settings,
   Add,
+  LocalConvenienceStoreOutlined,
+  DifferenceRounded,
 } from "@mui/icons-material";
 import { QuestionEditor } from "./QuestionEditor";
 import { TestSettingsDilog } from "./TestSettingsDIalog";
@@ -55,6 +57,37 @@ function normalizeTest(test) {
 
   return test;
 }
+const splitQuestions = (questions) => {
+  const normalQuestions = [];
+  const belbinQuestions = [];
+
+  questions.forEach((question) => {
+    if (question.question_type === "belbin") {
+      const { isBelbin, ...questionWithoutIsBelbin } = question;
+
+      const transformedAnswers = questionWithoutIsBelbin.answers.map(
+        ({ role, ...rest }) => ({
+          ...rest,
+          role_id: role?.id ?? null,
+          role_name: role?.name ?? "",
+        })
+      );
+
+      belbinQuestions.push({
+        ...questionWithoutIsBelbin,
+        answers: transformedAnswers,
+      });
+    } else {
+      normalQuestions.push(question);
+    }
+  });
+
+  return {
+    questions: normalQuestions,
+    belbin_questions: belbinQuestions,
+  };
+};
+
 export const TestEditor = ({
   initialTest,
   onSave,
@@ -101,17 +134,19 @@ export const TestEditor = ({
     }));
     return [...initialQuestions, ...belbinQuestions];
   }, [initialTest]);
+
   const isTestChanged = () => {
     const current = {
       ...initialTest,
       title,
       image: testImage,
-      questions: questions,
+      ...splitQuestions(questions),
       end_date: normalizeDate(deadline?.toISOString() || null),
 
       time_limit_minutes: timeLimit,
       test_settings: { ...testSettings, has_time_limit: null },
     };
+    console.log(current);
 
     const baseTest = {
       ...initialTest,
@@ -119,10 +154,12 @@ export const TestEditor = ({
 
       test_settings: { ...initialTest.test_settings, has_time_limit: null },
     };
+    console.log(baseTest);
+
     const normalizedCurrent = normalizeTest(current);
     const normalizedBase = normalizeTest(baseTest);
     const differences = diff(normalizedCurrent, normalizedBase);
-
+    console.log(differences);
     return !isEqual(normalizedCurrent, normalizedBase);
   };
   const [questions, setQuestions] = useState(prepareQuestions());
@@ -457,40 +494,42 @@ export const TestEditor = ({
       </Typography>
 
       {questions.length > 0 ? (
-        questions.map((question, index) => (
-          <Box
-            key={question.id}
-            sx={{
-              mb: 3,
-              p: 2,
-              borderRadius: 2,
-              border: "1px solid #ddd",
-              backgroundColor: "#f9f9f9",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-            }}
-          >
+        [...questions] // создаём копию, чтобы не мутировать исходный массив
+          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+          .map((question, index) => (
             <Box
+              key={question.id}
               sx={{
-                mb: 1,
-                fontWeight: "bold",
-                fontSize: "1.1rem",
-                color: "#333",
+                mb: 3,
+                p: 2,
+                borderRadius: 2,
+                border: "1px solid #ddd",
+                backgroundColor: "#f9f9f9",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
               }}
             >
-              Вопрос {index + 1}
+              <Box
+                sx={{
+                  mb: 1,
+                  fontWeight: "bold",
+                  fontSize: "1.1rem",
+                  color: "#333",
+                }}
+              >
+                Вопрос {index + 1}
+              </Box>
+              <QuestionEditor
+                settings={testSettings}
+                belbinCount={belbinCount}
+                question={question}
+                setTestSettings={saveSettings}
+                onChange={(updatedQuestion) =>
+                  handleQuestionChange(index, updatedQuestion)
+                }
+                onDelete={() => handleQuestionDelete(index)}
+              />
             </Box>
-            <QuestionEditor
-              settings={testSettings}
-              belbinCount={belbinCount}
-              question={question}
-              setTestSettings={saveSettings}
-              onChange={(updatedQuestion) =>
-                handleQuestionChange(index, updatedQuestion)
-              }
-              onDelete={() => handleQuestionDelete(index)}
-            />
-          </Box>
-        ))
+          ))
       ) : (
         <Typography>Нет вопросов</Typography>
       )}

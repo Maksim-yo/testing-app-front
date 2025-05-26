@@ -64,7 +64,8 @@ export const QuestionEditor = ({
     onChange({
       ...question,
       isBelbin: value,
-      question_type: "belbin",
+      question_type: value ? "belbin" : "single_choice",
+      points: value ? 0 : 1,
     });
   };
   const handleAddOption = () => {
@@ -420,7 +421,10 @@ export const QuestionEditor = ({
                     tabIndex={-1}
                     disableRipple
                   />
-                  <ListItemText primary={role.name} />
+                  <ListItemText
+                    primary={role.name}
+                    secondary={role.description} // вот добавил описание здесь
+                  />
                 </ListItemButton>
               </ListItem>
             ))}

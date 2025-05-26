@@ -23,8 +23,11 @@ import {
 import { TestTimer } from "../../components/test/TestTimer";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
-
+import { set } from "date-fns";
+import { NavigateBefore } from "@mui/icons-material";
 function isSameAnswer(question, body) {
+  console.log(question);
+  if (question.type === "belbin") return false;
   const selectedIdsFromQuestion = question.answers
     .filter((a) => a.is_user_answer)
     .map((a) => a.id)
@@ -37,7 +40,7 @@ function isSameAnswer(question, body) {
   );
 }
 
-const TestSolver = ({ test }) => {
+const TestSolver = ({ test, handleBack }) => {
   const navigate = useNavigate();
   const isCompleted = test.status === "completed";
 
@@ -241,6 +244,7 @@ const TestSolver = ({ test }) => {
         return false;
       }
     }
+    console.log("right");
 
     return true;
   };
@@ -275,13 +279,59 @@ const TestSolver = ({ test }) => {
     // const curr
 
     const alreadyAnswered = isSameAnswer(currentQuestion, body);
+    console.log(alreadyAnswered);
     if (alreadyAnswered) {
       return;
     }
-    await saveTestAnswer(body);
+    try {
+      await saveTestAnswer(body).unwrap();
+    } catch (error) {
+      console.log(error);
+      const errorMessage =
+        error?.data?.detail ||
+        error?.data?.message ||
+        error?.error ||
+        error?.message ||
+        error?.detail ||
+        "Произошла ошибка";
+      // setSnackbar({
+      //   open: true,
+      //   message: errorMessage,
+      //   severity: "error",
+      // });
+
+      // Дополнительно, если тест просрочен — можешь остановить дальнейшее прохождение
+      if (
+        errorMessage === "Срок действия теста истёк" ||
+        errorMessage === "Время на выполнение теста истекло"
+      ) {
+        // Например, показать диалог или вернуть пользователя
+        setSnackbar({
+          open: true,
+          message: errorMessage,
+          severity: "error",
+        });
+      } else if (errorMessage === "Тест приостановлен") {
+        setSnackbar({
+          open: true,
+          message: errorMessage,
+          severity: "error",
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: errorMessage,
+          severity: "error",
+        });
+      }
+      setTimeout(() => {
+        handleBack();
+      }, 2000);
+    }
   };
   const handleNext = async () => {
     if (!validateAnswer()) return;
+    console.log("HELLO");
 
     try {
       if (!isCompleted) await sendAnswer();

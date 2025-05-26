@@ -230,7 +230,6 @@ const EmployeesList = ({
               <TableCell>ФИО</TableCell>
               <TableCell>Должность</TableCell>
               <TableCell>Почта</TableCell>
-              <TableCell>Телефон</TableCell>
               <TableCell>Аккаунт</TableCell>
               <TableCell>Действия</TableCell>
             </TableRow>
@@ -261,7 +260,6 @@ const EmployeesList = ({
                     </TableCell>
                     <TableCell>{position?.title || "-"}</TableCell>
                     <TableCell>{employee?.email || "-"}</TableCell>
-                    <TableCell>{employee.phone || "-"}</TableCell>
                     <TableCell>
                       {is_created && (
                         <Chip

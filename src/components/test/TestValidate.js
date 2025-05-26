@@ -80,7 +80,10 @@ export const validateTest = (test, settings) => {
     }
     if (isBelbin) {
       for (let i = 0; i < q.answers.length; i++) {
-        if (!q.answers[i].role.name || q.answers[i].role.name.trim() === "") {
+        if (
+          !q.answers[i]?.role?.name ||
+          q.answers[i]?.role?.name?.trim() === ""
+        ) {
           errors.push(
             `У Белбин-вопроса №${index + 1}, вариант №${i + 1} не указана роль.`
           );

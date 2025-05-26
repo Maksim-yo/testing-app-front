@@ -54,7 +54,7 @@ const EmployeeTestManager = () => {
       )}
 
       {viewMode === VIEW.SOLVER && selectedTest && (
-        <TestSolver test={selectedTest} />
+        <TestSolver test={selectedTest} handleBack={handleBack} />
       )}
 
       {viewMode === VIEW.PREVIEW && selectedTest && (

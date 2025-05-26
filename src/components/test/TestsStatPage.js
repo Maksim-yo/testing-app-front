@@ -202,7 +202,10 @@ const TestStatsPage = ({ test }) => {
         <Typography variant="h4" gutterBottom>
           Статистика по тесту: {test.title}
         </Typography>
-        <Typography>Всего вопросов: {test.questions.length}</Typography>
+        <Typography>
+          Всего вопросов:{" "}
+          {test?.questions?.length + test?.belbin_questions?.length}
+        </Typography>
         <Typography sx={{}}>
           Кол-во назначений: {test.assigned_to?.length}
         </Typography>

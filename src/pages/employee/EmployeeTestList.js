@@ -23,7 +23,7 @@ import { format, parseISO } from "date-fns";
 import { ru } from "date-fns/locale";
 import { utcToZonedTime } from "date-fns-tz";
 import { useStartTestMutation } from "../../app/api";
-
+import { useState } from "react";
 const statusOrder = {
   not_started: 0,
   in_progress: 1,
@@ -41,10 +41,11 @@ const getTestStatus = (status) => {
 const EmployeeTestList = ({ onTestSelect, setSelectPreviewTest }) => {
   const navigate = useNavigate();
   const { data: tests = [], isLoading, isError } = useGetAssignedTestsQuery();
-  const [expiredSnackbarOpen, setExpiredSnackbarOpen] = React.useState(false);
-  const [errorSnackbarOpen, setErrorSnackbarOpen] = React.useState(false);
-  const [errorSnackbarMessage, setErrorSnackbarMessage] = React.useState("");
-
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "info", // 'success' | 'error' | 'warning' | 'info'
+  });
   console.log(tests);
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const [startTest, { isLoading: isLoadingStart }] = useStartTestMutation();
@@ -55,7 +56,10 @@ const EmployeeTestList = ({ onTestSelect, setSelectPreviewTest }) => {
       </Box>
     );
   }
-
+  const handleCloseSnackbar = (_, reason) => {
+    if (reason === "clickaway") return;
+    setSnackbar({ ...snackbar, open: false });
+  };
   if (isError) {
     console.log(isError);
     return (
@@ -71,20 +75,53 @@ const EmployeeTestList = ({ onTestSelect, setSelectPreviewTest }) => {
     const endDate = test.end_date ? parseISO(test.end_date) : null;
 
     if (endDate && now > endDate && !test.completed_at) {
-      setExpiredSnackbarOpen(true);
+      setSnackbar({
+        open: true,
+        message: "Вы не можете пройти тест — срок его выполнения уже истёк.",
+        severity: "warning",
+      });
       return;
     }
 
     try {
-      const res = await startTest(test_id).unwrap(); // используем unwrap из RTK Query
+      const res = await startTest(test_id).unwrap();
       const updatedTest = { ...test, started_at: res.started_at };
-      onTestSelect(updatedTest);
-    } catch (err) {
-      console.error("Ошибка при запуске теста:", err);
-      setErrorSnackbarMessage("Не удалось начать тест. Попробуйте позже.");
-      setErrorSnackbarOpen(true);
+      onTestSelect(res);
+    } catch (error) {
+      const errorMessage =
+        error?.data?.detail ||
+        error?.data?.message ||
+        error?.error ||
+        error?.message ||
+        error?.detail ||
+        "Произошла ошибка";
+      console.error("Ошибка при запуске теста:", error);
+      if (
+        errorMessage === "Срок действия теста истёк" ||
+        errorMessage === "Время на выполнение теста истекло"
+      ) {
+        // Например, показать диалог или вернуть пользователя
+        setSnackbar({
+          open: true,
+          message: errorMessage,
+          severity: "error",
+        });
+      } else if (errorMessage === "Тест приостановлен") {
+        setSnackbar({
+          open: true,
+          message: errorMessage,
+          severity: "error",
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: errorMessage,
+          severity: "error",
+        });
+      }
     }
   };
+
   const handlePreviewTest = (test) => {
     if (test.status !== "completed") return;
     setSelectPreviewTest(test);
@@ -229,31 +266,17 @@ const EmployeeTestList = ({ onTestSelect, setSelectPreviewTest }) => {
         )}
       </Paper>
       <Snackbar
-        open={expiredSnackbarOpen}
-        autoHideDuration={4000}
-        onClose={() => setExpiredSnackbarOpen(false)}
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
         <Alert
-          onClose={() => setExpiredSnackbarOpen(false)}
-          severity="warning"
-          variant="filled"
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
         >
-          Вы не можете пройти тест — срок его выполнения уже истёк.
-        </Alert>
-      </Snackbar>
-      <Snackbar
-        open={errorSnackbarOpen}
-        autoHideDuration={4000}
-        onClose={() => setErrorSnackbarOpen(false)}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert
-          onClose={() => setErrorSnackbarOpen(false)}
-          severity="error"
-          variant="filled"
-        >
-          {errorSnackbarMessage}
+          {snackbar.message}
         </Alert>
       </Snackbar>
     </Box>

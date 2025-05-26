@@ -331,14 +331,12 @@ export const TestList = ({ onCreate, onEdit, onPreview, onClick }) => {
                     <ListItemSecondaryAction
                       sx={{ display: "flex", alignItems: "center" }}
                     >
-                      {test.status !== "expired" && (
-                        <TestStatus
-                          onChange={(status) =>
-                            handleChangeStatus(test, status)
-                          }
-                          status={test.status}
-                        />
-                      )}
+                      <TestStatus
+                        onChange={(status) => handleChangeStatus(test, status)}
+                        status={
+                          test.status === "expired" ? "draft" : test.status
+                        }
+                      />
                       <IconButton onClick={() => handleViewTest(test)}>
                         <VisibilityIcon color="info" />
                       </IconButton>
@@ -425,8 +423,8 @@ export const TestList = ({ onCreate, onEdit, onPreview, onClick }) => {
         <DialogTitle>Подтверждение</DialogTitle>
         <DialogContent>
           <Typography>
-            Вы уверены, что хотите изменить статус теста? Это{" "}
-            <strong>может удалить результаты</strong> пользователей.
+            Вы уверены, что хотите изменить статус теста?{" "}
+            <strong>Выполнение теста завершится для всех участников </strong>{" "}
           </Typography>
         </DialogContent>
         <DialogActions>
