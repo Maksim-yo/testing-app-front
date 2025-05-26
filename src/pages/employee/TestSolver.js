@@ -27,7 +27,9 @@ import { set } from "date-fns";
 import { NavigateBefore } from "@mui/icons-material";
 function isSameAnswer(question, body) {
   console.log(question);
-  if (question.type === "belbin") return false;
+
+  if (question.type === "belbin" || question.type === "text_answer")
+    return false;
   const selectedIdsFromQuestion = question.answers
     .filter((a) => a.is_user_answer)
     .map((a) => a.id)

@@ -58,7 +58,7 @@ const VerifyEmailPage = () => {
             is_admin: pendingUser.isAdmin,
           }).unwrap(); // важно: unwrap, чтобы выбросить ошибку при неуспехе
         } catch (err) {
-          await deleteClerkUser(result.createdUserId).unwrap();
+          // await deleteClerkUser(result.createdUserId).unwrap();
           throw err;
         }
       }
