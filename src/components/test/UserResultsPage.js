@@ -193,16 +193,18 @@ function ResultRow({ result }) {
               </Typography>
               {result?.belbin_results && result?.belbin_results?.length > 0 ? (
                 <Box display="flex" flexWrap="wrap" gap={1}>
-                  {result?.belbin_results?.map((role) => (
-                    <Chip
-                      key={role.role.id}
-                      label={`${role.role?.name ?? role.role.id}: ${
-                        role.total_score
-                      }`}
-                      color="secondary"
-                      size="medium"
-                    />
-                  ))}
+                  {result?.belbin_results
+                    ?.filter((role) => role.total_score > 0) // ✅ фильтруем
+                    .map((role) => (
+                      <Chip
+                        key={role.role.id}
+                        label={`${role.role?.name ?? role.role.id}: ${
+                          role.total_score
+                        }`}
+                        color="secondary"
+                        size="medium"
+                      />
+                    ))}
                 </Box>
               ) : (
                 <Typography variant="body2" color="text.secondary">
