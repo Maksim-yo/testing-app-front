@@ -63,6 +63,8 @@ const SignInPage = () => {
         setErrorMessage(
           "Аккаунт с таким email не найден. Пожалуйста, зарегистрируйтесь."
         );
+      } else if (err.errors?.[0]?.message.includes("Too many requests")) {
+        setErrorMessage("Слишком много попыток, повторите вход позже.");
       } else {
         setErrorMessage("Неверный логин или пароль");
       }
