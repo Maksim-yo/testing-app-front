@@ -209,55 +209,61 @@ function ResultRow({ result }) {
                   Белбин-тест не проходился
                 </Typography>
               )}
-              <Typography variant="subtitle1" gutterBottom>
-                Рекомендации по ролям для должности: <b>{result.position}</b>
-              </Typography>
-              {employee?.position?.belbin_requirements &&
-              employee?.position?.belbin_requirements.length > 0 ? (
-                <Box display="flex" flexDirection="column" gap={1}>
-                  {employee?.position?.belbin_requirements.map(
-                    (recommended_role) => {
-                      const userScore = findRoleScore(
-                        recommended_role.role.name,
-                        result.belbin_results
-                      );
-                      const isBelow = userScore < recommended_role.min_score;
-                      return (
-                        <Box
-                          key={recommended_role.role.id}
-                          display="flex"
-                          alignItems="center"
-                          gap={1}
-                          sx={{
-                            bgcolor: isBelow
-                              ? "rgba(255,0,0,0.1)"
-                              : "rgba(0,255,0,0.1)",
-                            borderRadius: 1,
-                            p: 1,
-                          }}
-                        >
-                          <Typography sx={{ minWidth: 140 }}>
-                            {recommended_role.role.name}
-                          </Typography>
-                          <Chip
-                            label={`Рекомендуемый: ${recommended_role.min_score}`}
-                            size="small"
-                            color="info"
-                          />
-                          <Chip
-                            label={`Ваш балл: ${userScore}`}
-                            size="small"
-                            color={isBelow ? "error" : "success"}
-                          />
-                        </Box>
-                      );
-                    }
+              {result?.belbin_results && result?.belbin_results?.length > 0 && (
+                <>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Рекомендации по ролям для должности:{" "}
+                    <b>{result.position}</b>
+                  </Typography>
+                  {employee?.position?.belbin_requirements &&
+                  employee?.position?.belbin_requirements.length > 0 ? (
+                    <Box display="flex" flexDirection="column" gap={1}>
+                      {employee?.position?.belbin_requirements.map(
+                        (recommended_role) => {
+                          const userScore = findRoleScore(
+                            recommended_role.role.name,
+                            result.belbin_results
+                          );
+                          const isBelow =
+                            userScore < recommended_role.min_score;
+                          return (
+                            <Box
+                              key={recommended_role.role.id}
+                              display="flex"
+                              alignItems="center"
+                              gap={1}
+                              sx={{
+                                bgcolor: isBelow
+                                  ? "rgba(255,0,0,0.1)"
+                                  : "rgba(0,255,0,0.1)",
+                                borderRadius: 1,
+                                p: 1,
+                              }}
+                            >
+                              <Typography sx={{ minWidth: 140 }}>
+                                {recommended_role.role.name}
+                              </Typography>
+                              <Chip
+                                label={`Рекомендуемый: ${recommended_role.min_score}`}
+                                size="small"
+                                color="info"
+                              />
+                              <Chip
+                                label={`Ваш балл: ${userScore}`}
+                                size="small"
+                                color={isBelow ? "error" : "success"}
+                              />
+                            </Box>
+                          );
+                        }
+                      )}
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      Нет рекомендаций для этой должности
+                    </Typography>
                   )}
-                </Box>
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  Нет рекомендаций для этой должности
-                </Typography>
+                </>
               )}
             </Box>
           </Collapse>
