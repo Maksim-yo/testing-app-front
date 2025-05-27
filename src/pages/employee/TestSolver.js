@@ -171,27 +171,30 @@ const TestSolver = ({ test, handleBack }) => {
       ...test.belbin_questions.map((q) => ({ ...q, type: "belbin" })),
     ].sort((a, b) => a.order - b.order);
 
-    const firstUnansweredIndex = allQuestions.findIndex((q) => {
-      const answer = initialAnswers[q.id];
-      if (q.type === "belbin") {
-        const sum = (answer || []).reduce((a, b) => a + b, 0);
-        return sum !== 10;
-      } else if (q.type === "single_choice") {
-        return !answer;
-      } else if (q.type === "multiple_choice") {
-        // если нет ни одного выбранного варианта — считаем как неполный
-        return !answer || answer.length === 0;
-      } else if (q.type === "text") {
-        return !answer || answer.trim() === "";
-      }
-      return false;
-    });
+    // const firstUnansweredIndex = allQuestions.findIndex((q) => {
+    //   const answer = initialAnswers[q.id];
+    //   if (q.type === "belbin") {
+    //     console.log("aaa");
+    //     console.log(answer);
 
-    if (firstUnansweredIndex >= 0) {
-      setCurrentQuestionIndex(firstUnansweredIndex);
-    } else {
-      setCurrentQuestionIndex(0);
-    }
+    //     const sum = (answer || []).reduce((a, b) => a + b, 0);
+    //     return sum !== 10;
+    //   } else if (q.type === "single_choice") {
+    //     return !answer;
+    //   } else if (q.type === "multiple_choice") {
+    //     // если нет ни одного выбранного варианта — считаем как неполный
+    //     return !answer || answer.length === 0;
+    //   } else if (q.type === "text") {
+    //     return !answer || answer.trim() === "";
+    //   }
+    //   return false;
+    // });
+
+    // if (firstUnansweredIndex >= 0) {
+    //   setCurrentQuestionIndex(firstUnansweredIndex);
+    // } else {
+    setCurrentQuestionIndex(0);
+    // }
   }, [isCompleted, test]);
 
   const handleBelbinChange = (index) => (event, newValue) => {
