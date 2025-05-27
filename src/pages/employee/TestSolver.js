@@ -170,22 +170,22 @@ const TestSolver = ({ test, handleBack }) => {
       ...test.belbin_questions.map((q) => ({ ...q, type: "belbin" })),
     ].sort((a, b) => a.order - b.order);
 
-    const firstUnansweredIndex = allQuestions.findIndex((q) => {
-      const answer = initialAnswers[q.id];
-      if (q.type === "belbin") {
-        // Гарантируем, что answer - массив
-        const answerArray = Array.isArray(answer) ? answer : [];
-        const sum = answerArray.reduce((a, b) => a + b, 0);
-        return sum !== 10;
-      } else if (q.type === "single_choice") {
-        return !answer;
-      } else if (q.type === "multiple_choice") {
-        return !answer || answer.length === 0;
-      } else if (q.type === "text_answer") {
-        return !answer || answer?.trim() === "";
-      }
-      return false;
-    });
+    // const firstUnansweredIndex = allQuestions.findIndex((q) => {
+    //   const answer = initialAnswers[q.id];
+    //   if (q.type === "belbin") {
+    //     // Гарантируем, что answer - массив
+    //     const answerArray = Array.isArray(answer) ? answer : [];
+    //     const sum = answerArray.reduce((a, b) => a + b, 0);
+    //     return sum !== 10;
+    //   } else if (q.type === "single_choice") {
+    //     return !answer;
+    //   } else if (q.type === "multiple_choice") {
+    //     return !answer || answer.length === 0;
+    //   } else if (q.type === "text_answer") {
+    //     return !answer || answer?.trim() === "";
+    //   }
+    //   return false;
+    // });
   }, [isCompleted, test]);
 
   const handleBelbinChange = (index) => (event, newValue) => {
