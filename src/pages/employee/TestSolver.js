@@ -182,7 +182,7 @@ const TestSolver = ({ test, handleBack }) => {
       } else if (q.type === "multiple_choice") {
         return !answer || answer.length === 0;
       } else if (q.type === "text_answer") {
-        return !answer || answer.trim() === "";
+        return !answer || answer?.trim() === "";
       }
       return false;
     });
@@ -237,7 +237,7 @@ const TestSolver = ({ test, handleBack }) => {
         return false;
       }
     } else if (currentQuestion.type === "text_answer") {
-      if (!value || value.trim() === "") {
+      if (!value || value?.trim() === "") {
         setError("Введите ответ");
         return false;
       }
