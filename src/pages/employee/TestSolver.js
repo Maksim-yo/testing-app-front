@@ -64,13 +64,18 @@ const TestSolver = ({ test, handleBack }) => {
     message: "",
     severity: "info",
   });
+  const currentQuestion = questions[currentQuestionIndex];
+
+  const getQuestionKey = (question) =>
+    `${question.id}_${question.type || question.question_type}`;
+  const currentKey = getQuestionKey(currentQuestion);
+  const value = answers[currentKey];
 
   // Функция для закрытия Snackbar
   const handleCloseSnackbar = () => {
     setSnackbar((prev) => ({ ...prev, open: false }));
   };
   const isLoading = isCompleteTestLoading || isTestAnswerSaving;
-  const currentQuestion = questions[currentQuestionIndex];
   const isBelbin =
     currentQuestion?.type === "belbin" &&
     typeof currentQuestion?.block_number !== "undefined";
@@ -118,7 +123,7 @@ const TestSolver = ({ test, handleBack }) => {
   };
   const handleMultipleChoiceChange = (answerId) => (event) => {
     if (isCompleted) return;
-    const currentAnswers = answers[currentQuestion.id] || [];
+    const currentAnswers = answers[getQuestionKey(currentQuestion)] || [];
     let newAnswers;
 
     if (event.target.checked) {
@@ -127,7 +132,7 @@ const TestSolver = ({ test, handleBack }) => {
       newAnswers = currentAnswers.filter((id) => id !== answerId);
     }
 
-    setAnswers({ ...answers, [currentQuestion.id]: newAnswers });
+    setAnswers({ ...answers, [getQuestionKey(currentQuestion)]: newAnswers });
     setError("");
   };
   // Предзаполнение ответов, если тест завершён
@@ -200,7 +205,7 @@ const TestSolver = ({ test, handleBack }) => {
   const handleBelbinChange = (index) => (event, newValue) => {
     if (isCompleted) return;
     const newAnswer = [
-      ...(answers[currentQuestion.id] ||
+      ...(answers[getQuestionKey(currentQuestion)] ||
         Array(currentQuestion.answers.length).fill(0)),
     ];
     newAnswer[index] = newValue;
@@ -208,24 +213,30 @@ const TestSolver = ({ test, handleBack }) => {
     const sum = newAnswer.reduce((a, b) => a + b, 0);
     if (sum > 10) return;
 
-    setAnswers({ ...answers, [currentQuestion.id]: newAnswer });
+    setAnswers({ ...answers, [getQuestionKey(currentQuestion)]: newAnswer });
     setError("");
   };
 
   const handleSingleChoiceChange = (event) => {
     if (isCompleted) return;
-    setAnswers({ ...answers, [currentQuestion.id]: event.target.value });
+    setAnswers({
+      ...answers,
+      [getQuestionKey(currentQuestion)]: event.target.value,
+    });
     setError("");
   };
 
   const handleTextChange = (event) => {
     if (isCompleted) return;
-    setAnswers({ ...answers, [currentQuestion.id]: event.target.value });
+    setAnswers({
+      ...answers,
+      [getQuestionKey(currentQuestion)]: event.target.value,
+    });
     setError("");
   };
 
   const validateAnswer = () => {
-    const value = answers[currentQuestion.id];
+    const value = answers[getQuestionKey(currentQuestion)];
     console.log(value);
     console.log(answers);
 
@@ -261,19 +272,19 @@ const TestSolver = ({ test, handleBack }) => {
     let text_response = null;
 
     if (currentQuestion.type === "belbin") {
-      const scores = answers[currentQuestion.id] || [];
+      const scores = answers[getQuestionKey(currentQuestion)] || [];
       const answerScorePairs = currentQuestion.answers.map((a, index) => [
         a.id,
         scores[index] ?? 0,
       ]);
       text_response = JSON.stringify(answerScorePairs);
     } else if (currentQuestion.type === "single_choice") {
-      answer_ids = [parseInt(answers[currentQuestion.id])];
+      answer_ids = [parseInt(answers[getQuestionKey(currentQuestion)])];
     } else if (currentQuestion.type === "multiple_choice") {
       // Множественный выбор — просто передаем массив выбранных id
-      answer_ids = (answers[currentQuestion.id] || []).map(Number);
+      answer_ids = (answers[getQuestionKey(currentQuestion)] || []).map(Number);
     } else if (currentQuestion.type === "text_answer") {
-      text_response = answers[currentQuestion.id];
+      text_response = answers[getQuestionKey(currentQuestion)];
     }
 
     const body = {
@@ -281,10 +292,12 @@ const TestSolver = ({ test, handleBack }) => {
       question_id: currentQuestion.id,
       answer_ids,
       text_response,
-      question_type: currentQuestion.type,
+      question_type: currentQuestion?.question_type
+        ? currentQuestion?.question_type
+        : currentQuestion.type,
     };
     // const curr
-
+    console.log(currentQuestion);
     const alreadyAnswered = isSameAnswer(currentQuestion, body);
     console.log(alreadyAnswered);
     if (alreadyAnswered) {
@@ -408,7 +421,7 @@ const TestSolver = ({ test, handleBack }) => {
 
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
   const totalPoints = isBelbin
-    ? (answers[currentQuestion.id] || [])
+    ? (answers[getQuestionKey(currentQuestion)] || [])
         .map((v) => Number(v) || 0)
         .reduce((a, b) => a + b, 0)
     : null;
@@ -463,7 +476,9 @@ const TestSolver = ({ test, handleBack }) => {
             <FormControl key={a.id} fullWidth sx={{ mb: 2 }}>
               <BelbinSlider
                 index={index}
-                value={(answers[currentQuestion.id] || [])[index] || 0}
+                value={
+                  (answers[getQuestionKey(currentQuestion)] || [])[index] || 0
+                }
                 handleSliderChange={handleBelbinChange}
                 totalPoints={totalPoints}
                 marks={[...Array(11).keys()].map((n) => ({
@@ -494,7 +509,7 @@ const TestSolver = ({ test, handleBack }) => {
       )}
       {currentQuestion.type === "single_choice" && (
         <RadioGroup
-          value={answers[currentQuestion.id] || ""}
+          value={answers[getQuestionKey(currentQuestion)] || ""}
           onChange={handleSingleChoiceChange}
         >
           {currentQuestion.answers.map((a) => (
@@ -514,7 +529,9 @@ const TestSolver = ({ test, handleBack }) => {
               key={a.id}
               control={
                 <Checkbox
-                  checked={(answers[currentQuestion.id] || []).includes(a.id)}
+                  checked={(
+                    answers[getQuestionKey(currentQuestion)] || []
+                  ).includes(a.id)}
                   onChange={handleMultipleChoiceChange(a.id)}
                   disabled={isCompleted}
                 />
@@ -529,7 +546,7 @@ const TestSolver = ({ test, handleBack }) => {
           <TextField
             multiline
             minRows={1}
-            value={answers[currentQuestion.id] || ""}
+            value={answers[getQuestionKey(currentQuestion)] || ""}
             onChange={handleTextChange}
             disabled={isCompleted}
             placeholder="Введите ваш ответ"
