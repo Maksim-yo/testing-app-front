@@ -71,7 +71,9 @@ const TestSolver = ({ test, handleBack }) => {
   };
   const isLoading = isCompleteTestLoading || isTestAnswerSaving;
   const currentQuestion = questions[currentQuestionIndex];
-  const isBelbin = currentQuestion?.type === "belbin";
+  const isBelbin =
+    currentQuestion?.type === "belbin" &&
+    typeof currentQuestion?.block_number !== "undefined";
   const startedAtStr = test.started_at.substring(0, 23) + "Z";
   // берём первые 23 символа (до миллисекунд), добавляем "Z" для UTC
   const startedAtDate = new Date(startedAtStr);
