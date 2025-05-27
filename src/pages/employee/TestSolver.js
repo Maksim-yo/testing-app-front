@@ -154,38 +154,42 @@ const TestSolver = ({ test, handleBack }) => {
         }
       }
     }
-    // Обработка belbin-вопросов (всегда инициализируем массив, даже если нет ответов)
+
     for (const q of test.belbin_questions) {
-      // Если есть ответы с user_score, используем их, иначе создаём массив нулей
-      initialAnswers[q.id] =
-        q.answers?.map((a) => a.user_score || 0) ||
-        Array(q.answers?.length || 0).fill(0);
+      if (q.answers?.some((a) => a.user_score != null)) {
+        initialAnswers[q.id] = q.answers.map((a) => a.user_score || 0);
+      }
     }
 
     setAnswers(initialAnswers);
 
-    // Поиск первого неотвеченного вопроса
+    // 👉 Вычисляем первый неотвеченный вопрос
     const allQuestions = [
       ...test.questions.map((q) => ({ ...q, type: q.question_type })),
       ...test.belbin_questions.map((q) => ({ ...q, type: "belbin" })),
     ].sort((a, b) => a.order - b.order);
 
-    // const firstUnansweredIndex = allQuestions.findIndex((q) => {
-    //   const answer = initialAnswers[q.id];
-    //   if (q.type === "belbin") {
-    //     // Гарантируем, что answer - массив
-    //     const answerArray = Array.isArray(answer) ? answer : [];
-    //     const sum = answerArray.reduce((a, b) => a + b, 0);
-    //     return sum !== 10;
-    //   } else if (q.type === "single_choice") {
-    //     return !answer;
-    //   } else if (q.type === "multiple_choice") {
-    //     return !answer || answer.length === 0;
-    //   } else if (q.type === "text_answer") {
-    //     return !answer || answer?.trim() === "";
-    //   }
-    //   return false;
-    // });
+    const firstUnansweredIndex = allQuestions.findIndex((q) => {
+      const answer = initialAnswers[q.id];
+      if (q.type === "belbin") {
+        const sum = (answer || []).reduce((a, b) => a + b, 0);
+        return sum !== 10;
+      } else if (q.type === "single_choice") {
+        return !answer;
+      } else if (q.type === "multiple_choice") {
+        // если нет ни одного выбранного варианта — считаем как неполный
+        return !answer || answer.length === 0;
+      } else if (q.type === "text") {
+        return !answer || answer.trim() === "";
+      }
+      return false;
+    });
+
+    if (firstUnansweredIndex >= 0) {
+      setCurrentQuestionIndex(firstUnansweredIndex);
+    } else {
+      setCurrentQuestionIndex(0);
+    }
   }, [isCompleted, test]);
 
   const handleBelbinChange = (index) => (event, newValue) => {
@@ -237,7 +241,7 @@ const TestSolver = ({ test, handleBack }) => {
         return false;
       }
     } else if (currentQuestion.type === "text_answer") {
-      if (!value || value?.trim() === "") {
+      if (!value || value.trim() === "") {
         setError("Введите ответ");
         return false;
       }
