@@ -48,7 +48,7 @@ const Sidebar = () => {
               <DashboardIcon />
             </ListItemIcon>
             <ListItemText
-              primary="HR Система
+              primary="Сотрудники
 "
             />
           </ListItemButton>
