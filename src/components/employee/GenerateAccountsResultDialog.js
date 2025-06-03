@@ -148,12 +148,12 @@ const GeneratedAccountsResultDialog = ({ open, onClose, results }) => {
           }
         )}
       </DialogContent>
-      <DialogActions>
+      {/* <DialogActions>
         <Button onClick={handleExportCSV} variant="outlined">
           Экспортировать CSV
         </Button>
         <Button onClick={onClose}>Закрыть</Button>
-      </DialogActions>
+      </DialogActions> */}
     </Dialog>
   );
 };
