@@ -94,7 +94,7 @@ export const api = createApi({
     }),
     deleteEmployee: builder.mutation({
       query: (employeeId) => ({
-        url: `employees/${employeeId}`,
+        url: `employees/${employeeId}/`,
         method: "DELETE",
       }),
       invalidatesTags: ["Employees"], // Обновление или сброс кеша при изменении данных сотрудников
