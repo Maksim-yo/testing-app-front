@@ -25,8 +25,15 @@ import ResetTestDialog from "./ResetTestDialog";
 import { useGetTestResultsQuery } from "../../app/api";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import IconButton from "@mui/material/IconButton";
-import ExportButton from "./ExportButtonPdf";
+import { MyDoc } from "./MyDoc";
 import { useRef } from "react";
+import {
+  Document,
+  Page,
+  Text,
+  Image,
+  PDFDownloadLink,
+} from "@react-pdf/renderer";
 function formatTimeSpent(startedAt, completedAt, time_limit_minutes) {
   if (!startedAt || !completedAt) return "Н/Д";
 
@@ -311,7 +318,14 @@ export default function UserResultsPage({ results, isLoading }) {
         <Typography variant="h4" component="h1" fontWeight="bold">
           Результаты тестирования
         </Typography>
-        {results.length > 0 && <ExportButton containerRef={containerRef} />}
+        {results.length > 0 && (
+          <PDFDownloadLink
+            document={<MyDoc results={results} />}
+            fileName="result.pdf"
+          >
+            {({ loading }) => (loading ? "Генерация..." : "Скачать PDF")}
+          </PDFDownloadLink>
+        )}
       </Box>
 
       {isLoading ? (
