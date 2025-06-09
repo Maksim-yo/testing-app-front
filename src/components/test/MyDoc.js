@@ -204,7 +204,7 @@ export const MyDoc = ({ results }) => (
                         isBelow ? styles.chipError : styles.chipSuccess,
                       ]}
                     >
-                      <Text>Ваш балл: {userScore}</Text>
+                      <Text>Балл: {userScore}</Text>
                     </View>
                   </View>
                 );
