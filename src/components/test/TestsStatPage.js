@@ -213,7 +213,7 @@ const TestStatsPage = ({ test }) => {
           results={testResults}
           isLoading={isTestResultsLoading}
         />
-
+        {/* 
         <Box sx={{}}>
           <Button
             variant=""
@@ -235,9 +235,9 @@ const TestStatsPage = ({ test }) => {
               <ExpandMoreIcon />
             </IconButton>
           </Button>
-        </Box>
+        </Box> */}
         {/* Секция предпросмотра с ограничением по размеру и прокруткой */}
-        {isPreviewOpen && (
+        {/* {isPreviewOpen && (
           <Box
             sx={{
               maxHeight: "500px", // Ограничиваем высоту
@@ -250,7 +250,7 @@ const TestStatsPage = ({ test }) => {
           >
             <TestPreview test={test} />
           </Box>
-        )}
+        )} */}
         {/* <Box sx={{ height: 200 }} />  */}
       </Box>
 

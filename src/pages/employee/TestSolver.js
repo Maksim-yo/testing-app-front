@@ -376,7 +376,7 @@ const TestSolver = ({ test, handleBack }) => {
     if (isCompleted) return;
 
     const isValid = validateAnswer();
-
+    console.log(forceFinish, isValid);
     if (forceFinish && !isValid) {
       // Завершаем тест без отправки ответа
       try {
@@ -524,6 +524,12 @@ const TestSolver = ({ test, handleBack }) => {
       )}
       {currentQuestion.type === "multiple_choice" && (
         <FormControl component="fieldset" fullWidth>
+          <Typography
+            variant="subtitle2"
+            sx={{ mb: 1, color: "text.secondary" }}
+          >
+            Пожалуйста, выберите несколько вариантов ответа
+          </Typography>
           {currentQuestion.answers.map((a) => (
             <FormControlLabel
               key={a.id}
@@ -589,7 +595,7 @@ const TestSolver = ({ test, handleBack }) => {
             <Button
               variant="contained"
               color="success"
-              onClick={handleFinish}
+              onClick={() => handleFinish()}
               disabled={isLoading}
               startIcon={
                 isLoading ? (

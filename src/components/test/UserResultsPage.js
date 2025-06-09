@@ -34,6 +34,7 @@ import {
   Image,
   PDFDownloadLink,
 } from "@react-pdf/renderer";
+import TestAnswersWithAnswersResult from "./TestAnswersWithAnswersResult";
 function formatTimeSpent(startedAt, completedAt, time_limit_minutes) {
   if (!startedAt || !completedAt) return "Н/Д";
 
@@ -44,7 +45,6 @@ function formatTimeSpent(startedAt, completedAt, time_limit_minutes) {
   const start = new Date(normalize(startedAt));
   const end = new Date(normalize(completedAt));
   const maxDurationMs = time_limit_minutes * 60 * 1000;
-
   let diffMs = end - start;
 
   // Ограничиваем diff максимумом лимита
@@ -67,9 +67,10 @@ function formatDate(dateString) {
 }
 
 // Компонент строки результата с раскрывающимся блоком
-function ResultRow({ result }) {
+function ResultRow({ result, test }) {
   const [open, setOpen] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [userPreview, setUserPreview] = useState();
 
   const handleRowClick = () => {
     setOpen((prev) => !prev);
@@ -275,6 +276,13 @@ function ResultRow({ result }) {
                   )}
                 </>
               )}
+              <Button
+                variant="outlined"
+                sx={{ mt: 2 }}
+                onClick={() => setUserPreview(true)}
+              >
+                Показать ответы
+              </Button>
             </Box>
           </Collapse>
         </TableCell>
@@ -285,6 +293,16 @@ function ResultRow({ result }) {
         testId={result.test_id}
         employeeId={employee.id}
       />
+      {userPreview && (
+        <TestAnswersWithAnswersResult
+          test={test}
+          open={userPreview}
+          result={result}
+          onClose={() => setUserPreview(false)}
+        >
+          {" "}
+        </TestAnswersWithAnswersResult>
+      )}
     </>
   );
 }
@@ -304,6 +322,7 @@ const getPhotoUrl = (photo) => {
 
   return null;
 };
+
 export default function UserResultsPage({ results, isLoading }) {
   const containerRef = useRef();
 
@@ -320,7 +339,7 @@ export default function UserResultsPage({ results, isLoading }) {
         </Typography>
         {results.length > 0 && (
           <PDFDownloadLink
-            document={<MyDoc results={results} />}
+            document={<MyDoc results={results.map((r) => r.result)} />}
             fileName="result.pdf"
             style={{ textDecoration: "none" }}
           >
@@ -397,7 +416,11 @@ export default function UserResultsPage({ results, isLoading }) {
             </TableHead>
             <TableBody>
               {results.map((result) => (
-                <ResultRow key={result.id} result={result} />
+                <ResultRow
+                  key={result.result.id}
+                  result={result.result}
+                  test={result.test}
+                />
               ))}
             </TableBody>
           </Table>
