@@ -91,6 +91,12 @@ const getPhotoUrl = (photo) => {
 export const MyDoc = ({ results }) => (
   <Document>
     {results.map((result, idx) => {
+      const findRoleScore = (roleName) => {
+        const found = result.belbin_results?.find(
+          (r) => r.role.name === roleName
+        );
+        return found ? found.total_score : 0;
+      };
       // Helper to find belbin score by role name
       const allRolesMet = result.employee.position?.belbin_requirements?.every(
         (req) => {
@@ -98,13 +104,6 @@ export const MyDoc = ({ results }) => (
           return roleScore >= req.min_score;
         }
       );
-      const findRoleScore = (roleName) => {
-        const found = result.belbin_results?.find(
-          (r) => r.role.name === roleName
-        );
-        return found ? found.total_score : 0;
-      };
-
       return (
         <Page key={idx} size="A4" style={styles.page}>
           <View style={styles.section}>
