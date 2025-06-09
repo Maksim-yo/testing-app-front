@@ -311,7 +311,7 @@ export default function UserResultsPage({ results, isLoading }) {
         <Typography variant="h4" component="h1" fontWeight="bold">
           Результаты тестирования
         </Typography>
-        <ExportButton containerRef={containerRef} />
+        {results.length > 0 && <ExportButton containerRef={containerRef} />}
       </Box>
 
       {isLoading ? (
