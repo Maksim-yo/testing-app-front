@@ -71,11 +71,33 @@ const getPercentColor = (percent) => {
   if (percent >= 50) return styles.chipWarning;
   return styles.chipError;
 };
+const getPhotoUrl = (photo) => {
+  if (!photo) return null;
+
+  if (typeof photo === "string") {
+    if (photo.startsWith("data:image")) {
+      return photo;
+    }
+    return `data:image/jpeg;base64,${photo}`;
+  }
+
+  if (photo instanceof File) {
+    return URL.createObjectURL(photo); // Если это File объект
+  }
+
+  return null;
+};
 
 export const MyDoc = ({ results }) => (
   <Document>
     {results.map((result, idx) => {
       // Helper to find belbin score by role name
+      const allRolesMet = result.employee.position?.belbin_requirements?.every(
+        (req) => {
+          const roleScore = findRoleScore(req.role.name);
+          return roleScore >= req.min_score;
+        }
+      );
       const findRoleScore = (roleName) => {
         const found = result.belbin_results?.find(
           (r) => r.role.name === roleName
@@ -85,16 +107,27 @@ export const MyDoc = ({ results }) => (
 
       return (
         <Page key={idx} size="A4" style={styles.page}>
-          <View style={styles.headerRow}>
-            {/* Вставь Image, если нужно */}
-            {/* <Image src={getPhotoUrl(result.employee.photo)} style={styles.avatar} /> */}
-            <View style={styles.nameEmail}>
-              <Text style={styles.name}>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Информация о сотруднике</Text>
+
+            <View style={styles.flexRow}>
+              <Text style={styles.label}>ФИО:</Text>
+              <Text>
                 {result.employee.last_name} {result.employee.first_name}
               </Text>
-              <Text style={styles.email}>{result.employee.email}</Text>
             </View>
-            <Text>{result.employee.position?.title || "—"}</Text>
+
+            {result.employee.email && (
+              <View style={styles.flexRow}>
+                <Text style={styles.label}>Email:</Text>
+                <Text>{result.employee.email}</Text>
+              </View>
+            )}
+
+            <View style={styles.flexRow}>
+              <Text style={styles.label}>Должность:</Text>
+              <Text>{result.employee.position?.title || "—"}</Text>
+            </View>
           </View>
 
           <View style={styles.flexRow}>
@@ -182,6 +215,16 @@ export const MyDoc = ({ results }) => (
             <Text style={{ marginTop: 10, color: "#555" }}>
               Нет рекомендаций для этой должности
             </Text>
+          )}
+          {result.employee.position?.belbin_requirements?.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Итог:</Text>
+              <Text>
+                {allRolesMet
+                  ? "Должность рекомендуется на основе результатов Белбин-теста."
+                  : "Должность не рекомендуется: не все роли соответствуют минимальным требованиям."}
+              </Text>
+            </View>
           )}
         </Page>
       );

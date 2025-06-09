@@ -322,8 +322,13 @@ export default function UserResultsPage({ results, isLoading }) {
           <PDFDownloadLink
             document={<MyDoc results={results} />}
             fileName="result.pdf"
+            style={{ textDecoration: "none" }}
           >
-            {({ loading }) => (loading ? "Генерация..." : "Скачать PDF")}
+            {({ loading }) => (
+              <Button variant="outlined" disabled={loading}>
+                {loading ? "Генерация..." : "Скачать PDF"}
+              </Button>
+            )}
           </PDFDownloadLink>
         )}
       </Box>
