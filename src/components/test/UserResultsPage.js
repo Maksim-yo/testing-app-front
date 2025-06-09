@@ -25,7 +25,8 @@ import ResetTestDialog from "./ResetTestDialog";
 import { useGetTestResultsQuery } from "../../app/api";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import IconButton from "@mui/material/IconButton";
-
+import ExportButton from "./ExportButtonPdf";
+import { useRef } from "react";
 function formatTimeSpent(startedAt, completedAt, time_limit_minutes) {
   if (!startedAt || !completedAt) return "Н/Д";
 
@@ -297,8 +298,10 @@ const getPhotoUrl = (photo) => {
   return null;
 };
 export default function UserResultsPage({ results, isLoading }) {
+  const containerRef = useRef();
+
   return (
-    <Box sx={{ mt: 2, mb: 5 }}>
+    <Box sx={{ mt: 2, mb: 5 }} ref={containerRef}>
       <Box
         display="flex"
         justifyContent="space-between"
@@ -308,6 +311,7 @@ export default function UserResultsPage({ results, isLoading }) {
         <Typography variant="h4" component="h1" fontWeight="bold">
           Результаты тестирования
         </Typography>
+        <ExportButton containerRef={containerRef} />
       </Box>
 
       {isLoading ? (
