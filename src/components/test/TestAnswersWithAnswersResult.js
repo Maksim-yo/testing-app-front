@@ -115,7 +115,26 @@ const TestAnswersWithAnswersResult = ({ result, test, open, onClose }) => {
                 }}
               />
               <Typography variant="body2" sx={{ color: "#4caf50" }}>
-                — правильный ответ
+                — правильный ответ пользователя
+              </Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center", ml: 0.5 }}>
+              <Box
+                component="span"
+                sx={{
+                  width: 16,
+                  height: 16,
+                  bgcolor: "#dcedc8",
+                  mr: 1,
+                  display: "inline-block",
+                }}
+              />{" "}
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                component="span"
+              >
+                — ответ правильный, но не выбран пользователем
               </Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center", ml: 0.5 }}>
