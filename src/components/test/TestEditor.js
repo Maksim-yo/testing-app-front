@@ -127,7 +127,7 @@ function parseRawTest(raw) {
         question_type: q.question_type,
         image: q.image,
         order: index,
-        points: q.points,
+        points: q.points >= 1 ? q.points : 1,
         answers: q.answers.map((a) => ({
           id: a.id,
           text: a.text,
