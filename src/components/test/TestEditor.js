@@ -674,6 +674,7 @@ export const TestEditor = ({
         <Button
           onClick={handleSaveClick}
           variant="contained"
+          disabled={isLoading}
           startIcon={
             isLoading ? <CircularProgress size={20} color="inherit" /> : null
           }
