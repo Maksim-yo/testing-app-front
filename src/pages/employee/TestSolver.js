@@ -164,7 +164,7 @@ const TestSolver = ({ test, handleBack }) => {
 
     for (const q of test.belbin_questions) {
       if (q.answers?.some((a) => a.user_score != null)) {
-        initialAnswers[getQuestionKey()] = q.answers.map(
+        initialAnswers[getQuestionKey(q)] = q.answers.map(
           (a) => a.user_score || 0
         );
       }
