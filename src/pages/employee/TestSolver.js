@@ -140,31 +140,33 @@ const TestSolver = ({ test, handleBack }) => {
     if (!test) return;
 
     const initialAnswers = {};
-
+    console.log(test.questions);
     for (const question of test.questions) {
       if (question.question_type === "single_choice") {
         const selected = question.answers.find((a) => a.is_user_answer);
         if (selected) {
-          initialAnswers[question.id] = String(selected.id);
+          initialAnswers[getQuestionKey(question)] = String(selected.id);
         }
       } else if (question.question_type === "multiple_choice") {
         const selected = question.answers
           .filter((a) => a.is_user_answer)
           .map((a) => a.id);
         if (selected.length > 0) {
-          initialAnswers[question.id] = selected;
+          initialAnswers[getQuestionKey(question)] = selected;
         }
       } else if (question.question_type === "text_answer") {
         const textAnswer = question.answers?.[0]?.text;
         if (textAnswer) {
-          initialAnswers[question.id] = textAnswer;
+          initialAnswers[getQuestionKey(question)] = textAnswer;
         }
       }
     }
 
     for (const q of test.belbin_questions) {
       if (q.answers?.some((a) => a.user_score != null)) {
-        initialAnswers[q.id] = q.answers.map((a) => a.user_score || 0);
+        initialAnswers[getQuestionKey()] = q.answers.map(
+          (a) => a.user_score || 0
+        );
       }
     }
 

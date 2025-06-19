@@ -260,7 +260,7 @@ function ResultRow({ result, test }) {
                                 color="info"
                               />
                               <Chip
-                                label={`Ваш балл: ${userScore}`}
+                                label={`Балл: ${userScore}`}
                                 size="small"
                                 color={isBelow ? "error" : "success"}
                               />
