@@ -34,6 +34,7 @@ import ruLocale from "date-fns/locale/ru";
 import { startOfToday } from "date-fns";
 import isEqual from "lodash.isequal";
 import { diff } from "deep-diff";
+import { useUpdateTestMutation, useCreateTestMutation } from "../../app/api";
 
 function normalizeTest(test) {
   const sortById = (arr) => {
@@ -87,7 +88,70 @@ const splitQuestions = (questions) => {
     belbin_questions: belbinQuestions,
   };
 };
+function parseRawTest(raw) {
+  const questions = [];
+  const belbin_questions = [];
+  console.log(raw);
+  raw.questions.forEach((q, index) => {
+    if (q.question_type === "belbin") {
+      // Создаем один вопрос
+      const belbin_question = {
+        text: q.text, // общий текст вопроса
+        block_number: index + 1,
+        order: index,
+        answers: [], // массив вариантов ответа
+        id: q.id,
+        test_id: raw.id,
+      };
 
+      q.answers.forEach((a) => {
+        console.log(a);
+        if (a.role && a.role.id) {
+          belbin_question.answers.push({
+            id: a.id,
+            text: a.text,
+            role_id: a.role.id,
+            role_name: a.role.name,
+            question_id: q.id,
+          });
+        }
+      });
+
+      belbin_questions.push(belbin_question);
+    } else {
+      questions.push({
+        test_id: raw.id,
+        id: q.id,
+        text: q.text,
+        question_type: q.question_type,
+        image: q.image,
+        order: index,
+        points: q.points,
+        answers: q.answers.map((a) => ({
+          id: a.id,
+          text: a.text,
+          question_id: q.id,
+          is_correct: a.is_correct,
+          image: a.image,
+        })),
+      });
+    }
+  });
+
+  return {
+    title: raw.title || "Без названия",
+    description: raw.description || "",
+    is_active: true,
+    end_date: raw.end_date,
+    image: raw.image,
+    id: raw.id || "new",
+    questions,
+    belbin_questions,
+    test_settings: raw.test_settings,
+    status: raw.status || "draft",
+    time_limit_minutes: raw.time_limit_minutes,
+  };
+}
 export const TestEditor = ({
   initialTest,
   onSave,
@@ -97,6 +161,7 @@ export const TestEditor = ({
   onBack,
   triggerBack,
   resetTriggerBack,
+  backToList,
 }) => {
   // Состояния компонента
   const [title, setTitle] = useState(initialTest.title || "");
@@ -109,6 +174,10 @@ export const TestEditor = ({
     open: false,
     message: "",
   });
+  const [errorOpen, setErrorOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [createTest] = useCreateTestMutation();
+  const [updateTest] = useUpdateTestMutation();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [validationErrors, setValidationErrors] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -162,6 +231,57 @@ export const TestEditor = ({
     console.log(differences);
     return !isEqual(normalizedCurrent, normalizedBase);
   };
+
+  const handleCloseError = (event, reason) => {
+    if (reason === "clickaway") return;
+    setErrorOpen(false);
+  };
+
+  const handleShowError = (message) => {
+    setErrorMessage(message);
+    setErrorOpen(true);
+  };
+  const [successOpen, setSuccessOpen] = useState(false);
+
+  const handleShowSuccess = () => {
+    setSuccessOpen(true);
+  };
+
+  const handleSave = async (updatedTest) => {
+    try {
+      const parsedTest = parseRawTest(updatedTest);
+
+      const response =
+        updatedTest.id === "new"
+          ? await createTest(parsedTest)
+          : await updateTest(parsedTest);
+
+      // RTK Query mutation вернёт объект с error, если была ошибка
+      if (response.error) {
+        const detail = response.error.data?.detail;
+        let message = "Ошибка при сохранении теста.";
+
+        if (typeof detail === "string") {
+          message = detail;
+        } else if (detail?.message) {
+          message = detail.message;
+        } else if (detail?.error_message) {
+          message = detail.error_message;
+        }
+
+        handleShowError(message);
+        return;
+      }
+
+      handleShowSuccess();
+    } catch (err) {
+      console.error("Ошибка сохранения:", err);
+      handleShowError("Неизвестная ошибка при сохранении теста.");
+    } finally {
+      backToList();
+    }
+  };
+
   const [questions, setQuestions] = useState(prepareQuestions());
   const belbinCount = questions.filter((q) => q.isBelbin).length;
   const normalizeDate = (dateStr) =>
@@ -579,6 +699,16 @@ export const TestEditor = ({
           </Button>
         </DialogActions>
       </Dialog>
+      <Snackbar
+        open={errorOpen}
+        autoHideDuration={4000}
+        onClose={handleCloseError}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert onClose={handleCloseError} severity="warning">
+          {errorMessage}
+        </Alert>
+      </Snackbar>
     </Paper>
   );
 };
