@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  CircularProgress,
 } from "@mui/material";
 import {
   Visibility as VisibilityIcon,
@@ -154,7 +155,6 @@ function parseRawTest(raw) {
 }
 export const TestEditor = ({
   initialTest,
-  onSave,
   onCancel,
   onPreview,
   saveSettings,
@@ -176,13 +176,15 @@ export const TestEditor = ({
   });
   const [errorOpen, setErrorOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [createTest] = useCreateTestMutation();
-  const [updateTest] = useUpdateTestMutation();
+  const [createTest, { isLoading: isCreateTestLoading }] =
+    useCreateTestMutation();
+  const [updateTest, { isLoading: isUpdateTestLoading }] =
+    useUpdateTestMutation();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [validationErrors, setValidationErrors] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-
+  const isLoading = isCreateTestLoading || isUpdateTestLoading;
   const imageInputRef = useRef();
 
   // Подготовка вопросов
@@ -346,7 +348,7 @@ export const TestEditor = ({
       return false;
     }
     console.log(testSettings);
-    onSave({
+    handleSave({
       ...initialTest,
       title,
       image: testImage,
@@ -365,7 +367,7 @@ export const TestEditor = ({
     deadline,
     timeLimit,
     testSettings,
-    onSave,
+    handleSave,
   ]);
 
   // Обработчики действий
@@ -669,8 +671,14 @@ export const TestEditor = ({
         <Button onClick={() => handleShowCancelDialogue()} variant="outlined">
           Отмена
         </Button>
-        <Button onClick={handleSaveClick} variant="contained">
-          Сохранить тест
+        <Button
+          onClick={handleSaveClick}
+          variant="contained"
+          startIcon={
+            isLoading ? <CircularProgress size={20} color="inherit" /> : null
+          }
+        >
+          {isLoading ? "Сохранение..." : "Сохранить"}
         </Button>
       </Box>
 
